@@ -1,0 +1,48 @@
+<tmpl_include name="_header.tmpl">
+
+<div style="margin-bottom: 20pt">
+<p>
+<form method="get" class="inline">
+Building:
+<select name="building">
+    <tmpl_loop name="building_list">
+    <option value="<tmpl_var name=id>"<tmpl_if name=selected>selected="1"</tmpl_if>><tmpl_var name="label"></option>
+    </tmpl_loop>
+</select>
+Rack:
+<select name="rack">
+    <tmpl_loop name="rack_list">
+    <option value="<tmpl_var name=id>"<tmpl_if name=selected>selected="1"</tmpl_if>><tmpl_var name="label"></option>
+    </tmpl_loop>
+</select>
+<input type="submit" name="filter" value="Filter" />
+</form>&nbsp;&nbsp;&nbsp;
+<tmpl_var name=minisearch></p>
+</div>
+
+<table>
+  <tr>
+     <th>Building</th>
+     <th>Rack</th>
+     <th>Floor</th>
+     <th>Name</th>
+     <th>Vendor</th>
+     <th>Model</th>
+     <th>IP Address</th>
+  </tr>
+<tmpl_loop name="device_table">
+ <tr>
+   <td><manoc_link building id=building_id name=building_name></td>
+   <td><manoc_link rack id=rack_id name=rack_name></td>
+   <td class="numeric"><tmpl_var name="floor"></td>
+   <td><tmpl_var name="name"></td>
+   <td><tmpl_var name="vendor"></td>
+   <td><tmpl_var name="model"></td>
+   <td><manoc_link device id=ipaddr></td>
+</tr>
+</tmpl_loop>
+</table>
+
+<p><a href="<tmpl_var name=new_device_link>">Create new</a></p>
+
+<tmpl include name="_footer.tmpl">

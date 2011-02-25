@@ -1,0 +1,44 @@
+<tmpl_include name="_header.tmpl">
+
+
+
+<form method="post" enctype="multipart/form-data">
+<table>
+<tr>
+<td>Name</td>
+<td><input type="text" name="name" /></td>
+</tr>
+<tr>
+<td>Date (YYYY/MM/DD)</td>
+<td><input type="text" value="2004/02/02" name="date">
+<a onclick="javascript:displayCalendar(document.forms[0].date,'yyyy/mm/dd',this)" href="javascript:void(0)">Change</a>
+</td></tr>
+<tr>
+<td><input name="submit" value="Filter" type="submit" /></td>
+<td></td>
+</table>
+</form>
+
+<p>
+<tmpl_if name=prev_page>
+ <a href="?page=<tmpl_var name=prev_page>">Prev</a>
+</tmpl_if>
+<a href="?page=<tmpl_var name=next_page>">Next</a>
+</p>
+
+<table>
+  <tr>
+     <th>User</th>
+     <th>PC Name</th>
+     <th>IP Address</th>
+  </tr>
+<tmpl_loop name="table">
+       <tr class=results>
+	  <td><tmpl_var name=user></td>
+	  <td><tmpl_var name=hostname></td>
+	  <td><manoc_link ip id=ipaddr></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+<tmpl_include name="_footer.tmpl">

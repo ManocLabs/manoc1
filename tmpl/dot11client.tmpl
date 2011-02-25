@@ -1,0 +1,49 @@
+<tmpl_include name="_header.tmpl">
+
+<table>
+<tr>
+  <td>Device:</td><td><tmpl_var name="device"></td>
+</tr>
+<tr>
+  <td>Interface:</td><td><tmpl_var name="interface"></td>
+</tr>
+<tr>
+  <td>SSID:</td><td><tmpl_var name="ssid"></td>
+</tr>
+
+<tr>
+  <td>IP Address:</td><td><tmpl_var name="ipaddr"></td>
+</tr>
+<tr>
+  <td>Mac Address:</td><td><tmpl_var name="macaddr"></td>
+</tr>
+<tr>
+  <td>Vlan:</td><td><tmpl_var name="vlan"></td>
+</tr>
+
+<tr>
+  <td>Power:</td><td><tmpl_var name="power"> dBm</td>
+</tr>
+<tr>
+  <td>Quality:</td><td><tmpl_var name="quality">/100</td>
+</tr>
+
+<tr>
+  <td>Cipher (ucast/mcast):</td>
+ <td><tmpl_var name="u_cipher"> <tmpl_var name="m_cipher"></td>
+</tr>
+<tr>
+  <td>Key Management:</td><td><tmpl_var name="keymgt"></td>
+</tr>
+
+
+<tr>
+  <td>Authentication:</td>
+ <td><tmpl_var name="authen"> <tmpl_var name="addauthen"></td>
+</tr>
+
+
+</table>
+
+
+<tmpl_include name="_footer.tmpl">

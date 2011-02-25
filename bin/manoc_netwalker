@@ -1,0 +1,893 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use local::lib "$FindBin::Bin/../support";
+
+use Manoc::SNMPInfo;
+use Manoc::DB;
+use Manoc::Utils;
+use Config::Simple;
+use Getopt::Long;
+use Pod::Usage;
+use Carp;
+
+use IO::Socket;
+use POSIX ":sys_wait_h";
+use Fcntl ':flock'; # import LOCK_* constants
+
+
+my $Logger;       # log4perl
+my $Schema;       # DB connection
+my $Debug;        # debug flag
+my $Comm;         # community
+my $SNMP_Version; # default version
+
+my $Conf;	# configuration
+
+my $Timestamp;		# timestamp associated to this walk
+my $Vlan;		# native vlan
+my $Update_If_Status;	# should we retrieve interface status?
+my $Iface_filter;	# set to skip vlan|null interfaces
+my $Ignore_Portchannel;	# set to skip port-channell interfaces in mat
+my $VTPServers;		# set of IP addresses of the "authoritative" 
+			# vtp servers
+
+my $N_Procs;
+my $MP_Lock_W;		# to synchronize children writing on socket in MP mode
+my $MP_Lock_R;		# to avoid multiple children blocked on recv
+my %Children;		# children (workers) set
+
+
+sub open_device {
+    my ($host, $comm, $version) = @_;
+
+    my $info = new Manoc::SNMPInfo( 
+				    host	=> $host,
+				    debug       => $Debug,
+				    community   => $comm,
+				    version	=> $version,
+			     ) or return;
+    
+    my $err = $info->error();
+    if ( defined($err)) {
+	$Logger->error("Can't connect to $host: $err");
+	return undef;
+    }
+
+    my $name  = $info->name();
+    my $class = $info->class();
+
+    $Logger->info("Connected to device $host ($name)");
+    $Logger->debug("SNMP::Info is using this device class: $class");
+
+    return $info;
+}
+
+########################################################################
+
+
+sub discover_switch {
+    my ($info, $host, $visited) = @_;
+    my $all_neighbors = $info->get_neighbors();
+    my %switch_port;
+
+    my ($p, $n);
+    while (($p, $n) = each(%$all_neighbors)) { 
+	foreach my $s (@$n) { 
+	    $Logger->debug("$host: found neigh $s->{addr}"); 
+
+	    my $link = $Schema->resultset('CDPNeigh')->update_or_create({
+		from_device	=> $host,
+		from_interface	=> $p,		
+		to_device	=> $s->{addr},
+		to_interface	=> $s->{port},
+		last_seen	=> $Timestamp
+	    });
+	    $link->update;
+
+	    next unless $s->{switch}; # it's a switch 
+
+	    if (!defined($visited->{$s->{addr}})) { 
+		$Logger->error("unknown switch: ", $s->{addr}, 
+			       " connected to $host/$p");
+		$visited->{$s->{addr}} = 0;
+	    } else {
+		$switch_port{$p} = 1;
+	    }
+	}
+    }
+    return \%switch_port;
+}
+
+########################################################################
+
+sub update_device_info {
+    my ($info, $device) = @_;
+    my $name       = $info->name();
+    my $model      = $info->model();
+    
+    if ($device->name eq "") {
+	$device->name($name);	
+    } elsif ($name ne $device->name) {
+	$Logger->error("Name mismatch ", $device->name, " ", $name);
+    }
+
+    if ($device->model eq "") {
+	$device->model($model);
+    } elsif ($model ne $device->model) {
+	$Logger->error("Model mismatch ", $device->model," ", $model);
+    }
+
+    # VTP Management Domain -- get only the first
+    my $vtpdomains = $info->vtp_d_name();
+    my $vtpdomain;
+    if (defined $vtpdomains and scalar(values(%$vtpdomains))) {
+        $vtpdomain = (values(%$vtpdomains))[-1];
+    }
+    my $boottime = time() - $info->uptime()/100;
+
+    $device->set_column(os		=> $info->os 	);
+    $device->set_column(os_ver		=> $info->os_ver);
+    $device->set_column(vendor		=> $info->vendor);
+    $device->set_column(vtp_domain	=> $vtpdomain  	);
+    $device->set_column(boottime	=> $boottime	);
+    $device->set_column(last_visited	=> $Timestamp  	);
+    $device->set_column(offline		=> 0		);
+    $device->update;
+
+}
+
+sub update_if_table {
+    my ($info, $device) = @_;
+    my $host = $info->host();
+
+    $Logger->debug("update_if_table");
+
+    # get interface info
+    my $interfaces 	= $info->interfaces();
+    my $i_iname	   	= $info->i_name();
+    my $i_up       	= $info->i_up();
+    my $i_up_admin 	= $info->i_up_admin();
+    my $i_duplex   	= $info->i_duplex();
+    my $i_duplex_admin	= $info->i_duplex_admin();    
+    my $i_speed    	= $info->i_speed();
+    my $i_vlan      	= $info->i_vlan();
+    my $i_stp_state	= $info->i_stp_state();
+
+    my $cps_i_enable	= $info->cps_i_enable;
+    my $cps_i_status	= $info->cps_i_status;
+    my $cps_i_count	= $info->cps_i_count;
+
+    # delete old infos
+    $device->ifstatus()->delete;
+
+    # update
+  INTERFACE:
+    foreach my $iid (keys %$interfaces) {
+	my $port = $interfaces->{$iid};
+
+	unless (defined $port and length($port)) {
+            $Logger->debug("Ignoring $iid (no port mapping)");
+            next INTERFACE;
+        }
+	$Iface_filter && lc($port) =~ /^(vlan|null|unrouted vlan)/o and next INTERFACE;
+
+	$Logger->debug("Getting status for $port");
+
+	my %ifstatus;
+	$ifstatus{description}		= $i_iname->{$iid};
+	$ifstatus{up}     		= $i_up->{$iid};
+	$ifstatus{up_admin} 		= $i_up_admin->{$iid};
+	$ifstatus{duplex} 		= $i_duplex->{$iid};
+	$ifstatus{duplex_admin} 	= $i_duplex_admin->{$iid};
+	$ifstatus{speed}  		= $i_speed->{$iid};
+	$ifstatus{vlan} 		= $i_vlan->{$iid};
+	$ifstatus{stp_state}		= $i_stp_state->{$iid};
+	
+	$ifstatus{cps_enable}		= $cps_i_enable->{$iid};
+	$ifstatus{cps_status}		= $cps_i_status->{$iid};
+	$ifstatus{cps_count}		= $cps_i_count->{$iid};
+
+	$device->add_to_ifstatus({
+	    interface	=> $port,
+	    %ifstatus
+	    });
+    }
+}
+
+sub update_dot11 {
+    my ($info, $device) = @_;
+
+    $Logger->debug("update_dot11"); 
+
+    if ( $info->has_wcs() ) {
+	update_dot11_wcs($info, $device);
+	return
+    }
+
+    $info->has_cd11 or return;
+
+    $Logger->debug("update_dot11: cd11 section");
+
+    if ( $info->i_ssidlist() ) {
+	$device->ssids()->delete();
+
+	my $ssidlist	= $info->i_ssidlist;
+	my $ssidbcast	= $info->i_ssidbcast;
+	my $interfaces	= $info->interfaces();    
+	my $channel 	= $info->i_80211channel;    
+	my $iid;
+	while (my ($k, $v) = each(%$ssidlist)) {
+	    $iid = $k; 
+	    $iid =~ s/\.\d+//o;
+	    $device->add_to_ssids({
+		interface	=> $interfaces->{$iid},
+		ssid		=> $ssidlist->{$k},
+		broadcast	=> $ssidbcast->{$k},
+		channel		=> $channel->{$iid},
+	    });
+	}
+    }
+
+    # print "parent: ",  $info->cd11_parent, "\n";
+    my $client_index  	= $info->cd11_client_index;
+    my $client_parent 	= $info->cd11_client_parent;
+    my $client_ip     	= $info->cd11_client_ipaddress;
+    my $client_wep    	= $info->cd11_client_wep;
+    my $client_mic    	= $info->cd11_client_mic;
+    my $client_vlan   	= $info->cd11_client_vlan;
+    my $client_sigq   	= $info->cd11_client_sigquality;
+    my $client_state  	= $info->cd11_client_state;
+    my $client_sigstr 	= $info->cd11_client_sigstrength;
+    my $client_ucipher	= $info->cd11_client_ucipher;
+    my $client_mcipher	= $info->cd11_client_mcipher;
+    my $client_authen	= $info->cd11_client_authen;
+    my $client_addauthen = $info->cd11_client_addauthen;
+    my $client_1xauthen  = $info->cd11_client_1xauthen;
+    my $client_keymgt	= $info->cd11_client_keymgt;
+    my $interfaces 	= $info->interfaces();
+    my %client;
+
+    $device->dot11clients->delete();
+
+    my ($u_ciph, $m_ciph,  $add_au, $d1x_au, $keymgt);
+    my $assoc_info;
+
+    # TODO
+    while (my ($k, $v) = each(%$client_index)) {
+	$client{interface}	= $interfaces->{$v->{if_index}};
+	$client{ssid}		= $v->{ssid};
+	$client{macaddr}	= $v->{address};
+
+	$client{parent}		= $client_parent->{$k};
+	$client{state}		= $client_state->{$k};
+	$client{ipaddr}		= $client_ip->{$k};
+	$client{vlan}		= $client_vlan->{$k};
+
+	$client{wep}		= $client_wep->{$k};
+	$client{mic}		= $client_mic->{$k};
+	$client{authen}		= $client_authen->{$k};
+
+	$client{power}		=  $client_sigstr->{$k};
+	$client{quality}	=  $client_sigq->{$k};
+
+       
+	# bitset attributes
+	$u_ciph = $client_ucipher->{$k};
+	$m_ciph = $client_mcipher->{$k};
+	$add_au = $client_addauthen->{$k};
+	$d1x_au = $client_1xauthen->{$k};
+	$keymgt = $client_keymgt->{$k};
+	$client{u_cipher} = join(",", grep $u_ciph->{$_}, keys(%$u_ciph));
+	$client{m_cipher} = join(",", grep $m_ciph->{$_}, keys(%$m_ciph));
+	$client{keymgt}	  = join(',', grep $keymgt->{$_}, keys(%$keymgt));
+	$client{addauthen}   = join(",", grep $add_au->{$_}, keys(%$add_au));
+        $client{dot1xauthen} = join(",", grep $d1x_au->{$_}, keys(%$d1x_au));
+
+	# add client info	
+	$device->add_to_dot11clients(\%client);
+
+	# update assoc info
+	$assoc_info = $device->search_related('dot11assocs', {
+	    macaddr  => $client{macaddr},
+	    archived => 0 
+	    })->single();
+
+	if ($assoc_info) {
+	    $assoc_info->lastseen($Timestamp);
+	    $assoc_info->update();
+	} else {
+	    $device->add_to_dot11assocs({
+		macaddr  => $client{macaddr},				
+		ipaddr   => $client{ipaddr},				
+		ssid     => $client{ssid},				
+		vlan     => $client{vlan},				
+	    	firstseen => $Timestamp,
+	    	lastseen => $Timestamp,
+		archived => 0 
+		});
+
+	}
+    }
+}
+
+sub update_dot11_wcs {
+    my ($info, $device) = @_;
+
+    my $cldc_client_mac      = $info->cldc_client_mac;  
+    my $cldc_client_status   = $info->cldc_client_status;  
+    my $cldc_client_wprofile = $info->cldc_client_wprofile;
+    my $cldc_client_protocol = $info->cldc_client_protocol;
+    my $cldc_assoc_mode      = $info->cldc_assoc_mode;
+    my $cldc_ap_address      = $info->cldc_ap_address;
+
+    $Logger->debug("wcs: $cldc_client_status");
+
+    while (my ($k, $v) = each(%$cldc_client_mac)) {
+	print join("\t", 
+		   $v, 
+		   $cldc_client_status->{$k},
+		   $cldc_client_wprofile->{$k} || 'n/a',
+		   $cldc_client_protocol->{$k} || 'n/a',
+		   $cldc_assoc_mode->{$k} || 'n/a',
+		   $cldc_ap_address->{$k});
+	print "\n";
+    }
+
+    print "AP\n", "-" x 72, "\n";
+    my $clap_ap_mac        = $info->clap_ap_mac();
+    my $clap_ap_entity_idx = $info->clap_ap_entity_idx();
+    my $clap_ap_name       = $info->clap_ap_name();
+    while (my ($k, $v) = each(%$clap_ap_mac)) {
+	print join("\t", 
+		   $v,
+		   $clap_ap_entity_idx->{$k},
+		   $clap_ap_name->{$k},
+		   );
+	print "\n";
+    }
+	
+}
+
+sub merge_mat {
+    my ($mat, $host, $switch_port, $vlan) = @_;
+
+    my ($p, $n, $m);
+
+    while (($m, $p) = each %$mat) {
+        $Logger->debug(" VLAN $vlan $m->$p");
+
+        next if $switch_port->{$p};
+
+	next if $Ignore_Portchannel && lc($p) =~ /^port-channel/;
+
+        $Logger->debug("  adding!");	
+	my @entries = $Schema->resultset('Mat')->search({
+	    macaddr	=> $m,
+	    device	=> $host,
+	    interface	=> $p,
+	    vlan        => $vlan,
+	    archived	=> 0,
+	});
+	scalar(@entries) > 1 and
+	  $Logger->error("More than one non archived entry for $host,$m,$p");
+
+	if (@entries) {
+	    my $entry = $entries[0];	
+
+	    $entry->lastseen($Timestamp);
+	    $entry->update();
+	} else {
+	    $Schema->resultset('Mat')->update_or_create({
+		macaddr	=> $m,
+		device	=> $host,
+		interface => $p,
+		firstseen => $Timestamp,
+		lastseen  => $Timestamp,
+		vlan	  => $vlan,
+		archived  => 0,
+	    });
+	}
+    }
+}
+
+sub update_mat_tables {
+    my ($info, $device, $comm, $version, $visited) = @_;
+    
+    my $host = $info->host();
+    my $interfaces = $info->interfaces();
+ 
+    # hash reference: is port connected to another switch?
+    my $port_to_switch = discover_switch($info, $host, $visited);
+
+    foreach ($device->uplinks->all) {
+      $port_to_switch->{ $_->interface } = 1;
+    }
+    
+    $Logger->debug("Device uplinks: ", join(",", keys %$port_to_switch));
+
+
+    # update MAT
+    my $mat   = $info->get_mat();
+    merge_mat($mat, $host, $port_to_switch, $Vlan);
+
+    if($info->cisco_comm_indexing()) {
+	$Logger->debug("Device supports Cisco commuinty string indexing. Connecting to each VLAN");
+		
+	my $v_name = $info->v_name() || {};
+	my $i_vlan = $info->i_vlan() || {};
+	
+	# Get list of VLANs currently in use by ports
+	my %vlans;
+	foreach my $key (keys %$i_vlan){
+	    my $vlan = $i_vlan->{$key};
+	    $vlans{$vlan}++;
+	}
+	
+	# For each VLAN: connect, get mat and merge
+	my ($vlan_name, $vlan);
+	foreach my $vid (keys %$v_name) {
+	    
+	    $vlan_name = $v_name->{$vid} || '(Unnamed)';
+	    # VLAN id comes as 1.142 instead of 142
+
+	    next if $vlan_name eq "default";
+	    $vlan = $vid;
+	    $vlan =~ s/^\d+\.//;
+	    
+	    # TODO check for configured skipped vlans
+	    
+	    # Only use VLAN in use by port
+	    #  but check to see if device serves us that list first
+	    if (scalar(keys(%$i_vlan)) && !defined($vlans{$vlan})) {
+		next;
+	    }
+	    
+	    $Logger->debug(" VLAN:$vlan_name ($vlan)");
+	    my $vlan_comm        = $comm . '@' . $vlan; 
+	    my $vlan_device_info = open_device($host, $vlan_comm, $version);
+	    next unless defined($vlan_device_info);
+	    
+	    $mat = $vlan_device_info->get_mat();
+	    merge_mat($mat, $host, $port_to_switch, $vlan);
+	}
+    } # end of cisco vlan comm indexing
+}
+
+sub update_vtp {
+    my ($info, $device) = @_;
+    my $device_id = $device->id;
+    #retrive vlan information 
+    my $vlan = $info->v_name();
+    unless($vlan){
+	$Logger->error("Cannot retrieve vtp info in $device");
+	return;
+    }
+
+    $Logger->info("Getting vtp info from $device");
+
+    #delete all entries in db
+    my $vlan_db = $Schema->resultset('VlanVtp')->search();
+    $vlan_db->delete();
+
+    # populate db with vlan info
+    # foreach my $iid (sort (keys %$vlan) ) {
+    my ($iid, $name);
+    while ( ($iid, $name) = each(%$vlan) ) {
+	my $id_temp = $iid;
+	$id_temp =~ s/^\d+.//;
+	$Logger->debug("$device_id VTP: ID $id_temp VLAN_NAME $name");
+	
+	my $vlan_db = $Schema->resultset('VlanVtp')->find_or_create({
+	    'id'	=> $id_temp , 
+	    'name'	=> $name
+	    });
+    }
+
+}
+
+
+sub update_arp {
+    my ($info, $device) = @_;
+
+    my $vlan = $device->vlan_arpinfo() || $Vlan;
+
+    my $at_paddr   = $info->at_paddr();
+    my $at_netaddr = $info->at_netaddr();
+
+    my ($k, $v);
+    
+    while (($k, $v) = each(%$at_paddr)) {
+        my $ip_addr = $at_netaddr->{$k};
+        my $mac_addr = $v;
+
+        # broadcast IP will show up in the node table.
+        next if uc($mac_addr) eq 'FF:FF:FF:FF:FF:FF';
+ 
+        # Skip Passport 8600 CLIP MAC addresses
+        next if uc($mac_addr) eq '00:00:00:00:00:01';
+
+        # Skip VRRP addresses
+        next if $mac_addr =~ /^00:00:5e:00:/i;
+
+        $Logger->debug(sprintf("%15s at %17s\n", $ip_addr, $mac_addr));
+
+	my @entries = $Schema->resultset('Arp')->search({
+	    ipaddr	=> $ip_addr,
+	    macaddr	=> $mac_addr,
+	    vlan	=> $vlan,
+	    archived => 0
+	    });
+	
+	scalar(@entries) > 1 and
+	    $Logger->error("More than one non archived entry for $ip_addr,$mac_addr");
+
+	if (@entries) {
+	    my $entry = $entries[0];	
+	    $entry->lastseen($Timestamp);
+	    $entry->update();
+	} else {
+	    $Schema->resultset('Arp')->create({
+		ipaddr    => $ip_addr,
+		macaddr   => $mac_addr,
+		firstseen => $Timestamp,
+		lastseen  => $Timestamp,
+		vlan      => $vlan,
+		archived  => 0
+	    });
+	}
+    }
+}
+
+
+#----------------------------------------------------------------------#
+
+sub visit_device {
+    my $addr	= shift;
+    my $comm	= shift;
+
+    my @device_ids = $Schema->resultset('Device')->get_column('id')->all;
+    my %visited = map {$_ => 0} @device_ids;
+
+    do_device($addr, \%visited);
+}
+
+sub visit_all {
+    my $comm = shift;
+
+    my @device_ids = $Schema->resultset('Device')->get_column('id')->all;
+    my %visited = map {$_ => 0} @device_ids;
+
+    foreach my $host (@device_ids) {
+	do_device($host, \%visited);
+    }
+
+}
+
+sub visit_all_mp {
+    my $comm = shift;
+    
+    my @device_ids = $Schema->resultset('Device')->get_column('id')->all;
+    my %visited = map {$_ => 0} @device_ids;
+
+    # create socket pair
+    my ($p_socket,  $c_socket) = 
+	IO::Socket->socketpair(AF_UNIX, SOCK_SEQPACKET, PF_UNSPEC);
+
+    # spawn workers
+    my $pid;
+    for (1..$N_Procs) {
+	$pid = fork;
+	defined($pid) or $Logger->logdie("Cannot fork.");
+	if ($pid) {
+	    $Children{$pid} = 1;
+	    next;
+	}
+	
+	$p_socket->close;
+	run_child($c_socket, \%visited);
+	exit;
+    }
+
+    # send jobs requests
+    my $host;
+    my $line;
+
+    while (@device_ids) {
+	$host = shift @device_ids;
+	
+	$p_socket->recv($line, 1024, 0);
+	
+	$p_socket->send("HOST $host");
+    }
+
+    for (1..$N_Procs) {
+	$p_socket->send("STOP");
+    }
+    
+    foreach (grep { $Children{$_} } keys %Children) {
+	waitpid($_, 0);
+    }
+}
+
+sub run_child {
+    my $socket  = shift;
+    my $visited = shift;
+
+    # reopen db connection
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf)) ||
+	$Logger->logconfess("child $$: cannot connect to DB");
+
+    $socket->send("DONE");
+    
+    my $msg;
+    while(1) {
+	flock($MP_Lock_R, LOCK_EX);
+	$socket->recv($msg, 1024, 0);
+	flock($MP_Lock_R, LOCK_UN);	
+
+	if ($msg =~ /HOST\s+([\d\.+]+)/o ) {
+	    my $host = $1;
+	    do_device($host, $visited);
+
+	    flock($MP_Lock_W, LOCK_EX);
+	    $socket->send("DONE $msg");
+	    flock($MP_Lock_W, LOCK_UN);
+
+	    next;
+	} 
+
+	if ($msg eq "STOP") {
+	    exit 0;
+	}
+    }
+    
+}
+
+#----------------------------------------------------------------------#
+
+sub do_device {
+    my ($addr, $visited) = @_;
+
+    my $device = $Schema->resultset('Device')->find($addr);
+
+    $device or $Logger->logdie("$addr not in device list\n");
+
+    # get device community and version or use default
+    my $comm    = $device->snmp_com() || $Comm;
+    my $version = $device->snmp_ver() || $SNMP_Version;
+
+    # error message printed by open_device
+    my $info = open_device($addr, $comm, $version);
+    
+    if (!$info) {
+	$device->offline(1);
+	$device->update;
+	$Logger->error("can't connect to $addr");
+
+	# remove pseudo-realtime infos
+	$device->ssids()->delete();
+	$device->dot11clients->delete();
+
+	return 0;
+    }
+
+    $visited->{$addr} = 1;
+    
+    my $name = $info->name();
+    $Logger->info("Connected to $addr $name");
+    
+    # A transaction for each device
+    $Schema->txn_do( sub {
+	    update_device_info($info, $device);
+	    
+	    # update if_status table if required
+	    $Update_If_Status and
+		update_if_table($info, $device);
+
+	    $device->get_mat() and
+		update_mat_tables($info, $device, $comm, $version, $visited);
+
+	    $device->get_dot11() and
+		update_dot11($info, $device);
+
+	    $device->get_arp() and
+		update_arp($info, $device);
+
+	    $VTPServers->{$addr} and
+		update_vtp($info, $device);
+	});
+    
+    if ( $@ ) {
+	my $commit_error = $@;
+	$Logger->error("commit error on $addr : $commit_error");
+    }
+    # end of transaction
+}
+
+
+########################################################################
+
+sub set_update_if_status {
+    my $if_update_interval = $Conf->param('netwalker.ifstatus_interval');
+    $Update_If_Status = 0;
+    if ($if_update_interval) {
+	my $if_last_update_entry =
+	    $Schema->resultset('System')->find("netwalker.if_update");
+	if (!$if_last_update_entry) {
+	    $if_last_update_entry =  $Schema->resultset('System')->create({
+		name  => "netwalker.if_update",
+		value => "0"});				
+	}
+	my $if_last_update = $if_last_update_entry->value();
+	my $elapsed_time   = $Timestamp - $if_last_update;	
+	$Update_If_Status = $elapsed_time > $if_update_interval;
+    }
+}
+
+
+sub sig_child {
+    my $child;
+    
+    while (($child = waitpid(-1,WNOHANG)) > 0) {
+	$Children{$child} = 0;
+    }
+    $SIG{CHLD} = \&sig_child;  # still loathe sysV
+}
+
+
+sub main {
+    my ($conf_file, $help, $man);
+    my ($device, $force_ifstatus, $serial);
+
+    GetOptions(
+	       'device=s'		=> \$device,
+	       'debug'			=> \$Debug,
+	       'update-ifstatus'	=> \$force_ifstatus,
+	       'conf=s'			=> \$conf_file,
+	       'force-serial'		=> \$serial,
+	       'help|?'			=> \$help,
+	       'man'			=> \$man,	       
+		) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    # search and open config file
+    if (!defined $conf_file) {
+	$conf_file = "/etc/manoc.conf";
+	-f $conf_file or
+	  $conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					   'etc',
+					   'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+    $Debug and print  "Reading conf from $conf_file\n";
+    $Conf = new Config::Simple($conf_file);
+
+    # start logger and db
+    $Logger = Manoc::Utils::init_log(
+				     conf	=> $Conf, 
+				     name	=> 'netwalker.log',	     
+				     debug	=> $Debug
+				     );
+    $Logger || die "Cannot init logger";
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf)) ||
+	$Logger->logconfess("cannot connect to DB");   
+
+    # use local mibs if possible
+    my $local_mib_dir = File::Spec->catfile(Manoc::Utils::get_manoc_home(), 
+                                           'mibs');
+    if (-d $local_mib_dir) {
+       $Logger->debug("Using local mib dir $local_mib_dir");
+       $ENV{MIBDIRS} = $local_mib_dir;
+    }
+
+    # set global conf
+    $Comm		= $Conf->param('password.snmp') || 'public';
+    $SNMP_Version       = $Conf->param('netwalker.snmp_version') || '2';
+    $Iface_filter	= $Conf->param('netwalker.iface_filter') ? 1 : 0;
+    $Ignore_Portchannel	= $Conf->param('netwalker.ignore_portchannel') || 1;
+    $Vlan		= $Conf->param('netwalker.vlan') || 1;
+    $Timestamp		= time();
+    $N_Procs		= $Conf->param('netwalker.n_procs') || 0;
+
+    my $vtp_server_conf = $Conf->param('netwalker.vtp_servers');
+    if ($vtp_server_conf) {
+	my @address_list = split /\s+/, $vtp_server_conf;
+	$VTPServers = { map { $_ => 1 } @address_list };
+    } else {
+	$Logger->info("no VTP servers defined");
+    }
+
+
+    $SIG{CHLD} = \&sig_child;
+
+
+    if ($force_ifstatus) {
+	$Update_If_Status = 1;
+    } else {
+	set_update_if_status($Conf);
+    }
+    $Logger->info('update ifstatus is ', $Update_If_Status ? 'ON' : 'OFF');
+
+    # only one device    
+    if ($device) {
+	visit_device($device, $Comm);
+	exit 0;
+    } 
+
+    # start visit
+    if ($N_Procs < 2 || $serial) {
+
+	# serial visit
+	$Logger->info("Started serial netwalker");
+	visit_all($Comm);
+
+    } else {
+	# mp visit
+	$Logger->info("Started mp netwalker");
+	
+	# open lock files
+	my $lock_dir = $Conf->param('netwalker.lock_dir');
+	$lock_dir ||= File::Spec->catfile(Manoc::Utils::get_manoc_home(), 'run');
+	
+	my $lock1 = File::Spec->catfile($lock_dir, 'netwalker.1.lock');
+	open ($MP_Lock_W, ">$lock1") or
+	    $Logger->logdie("cannot open lock file $lock1 ($!)");
+	
+	my $lock2 = File::Spec->catfile($lock_dir, 'netwalker.2.lock');
+	open ($MP_Lock_R, ">$lock2") or
+	    $Logger->logdie("cannot open lock file $lock2 ($!)");
+
+	visit_all_mp($Comm);
+    }
+    $Logger->info("Done");
+    
+    # update netwalker if_update timestamp in System table
+    if ($Update_If_Status) {
+	my $if_last_update_entry =
+	    $Schema->resultset('System')->find("netwalker.if_update");
+	$if_last_update_entry->value($Timestamp);
+	$if_last_update_entry->update();
+    }   
+
+    exit 0;
+}
+
+main;
+
+=head1 NAME
+
+manoc_netwalker - Grabs info via SNMP
+
+=head1 SYNOPSIS
+
+manoc_netwalker [options]
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--device=IPADDR>
+
+Do not walk all devices, just connect to IPADDR
+
+=item B<--debug>
+
+=item B<--update-ifstatus>
+
+=item B<--conf=PATH>
+			
+=item B<force-serial>
+
+=item B<--help|?>
+
+=item B<--man>
+
+=back
+

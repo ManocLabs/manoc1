@@ -1,0 +1,23 @@
+<tmpl_include name="_header.tmpl">
+
+<p>New rack in building <tmpl_var name=building_name></p>
+
+<form method="POST">
+<input name="building" type="hidden" value="<tmpl_var name=building_id>" />
+<input name="backref" type="hidden" value="<tmpl_var name=backref>" />
+<table>
+<tr>
+  <td>Name:</td>
+  <td>
+  <input type="text" name="name" value="<tmpl_var name=name>" />
+  </td>
+</tr>
+<tr>
+  <td>Floor:</td>
+  <td><input type="text" name="floor" value="<tmpl_var name=floor>" /></td>
+</tr>
+</table>
+<input type="submit" name="submit" value="submit" />
+</form>
+
+<tmpl_include name="_footer.tmpl">

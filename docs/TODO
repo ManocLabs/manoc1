@@ -1,0 +1,21 @@
+- merge search/advanced search, use button ids
+
+- change rack/building id to char(32)
+- rename rack/building
+
+- search minilang
+
+	query parser	---+
+  	defaults	---+--> targets/limits/query --> search_helpers
+	form processing ---+
+
+  ---> result objects collecting ---> output
+
+
+- report multihost ports: netwalker has to flag uplinks in if_status
+
+- detailed status in interface table
+
+- unusused IP / MAC
+
+- message/command bus  and event handling

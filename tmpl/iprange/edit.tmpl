@@ -1,0 +1,70 @@
+<tmpl_include name="_header.tmpl">
+
+<tmpl_if name=message></tmpl_if>
+
+<form name="form1" method="POST">
+
+<input type=hidden name="name" value="<tmpl_var name=name>" />
+
+<br>
+<table>
+	<tr>
+		<td>Name:</td>
+		<td><input type="text" name="new_name" value="<tmpl_var name=new_name>" /></td>
+	</tr>
+        <tr>
+           <td>Type:</td>
+           <td>
+	       <input id="radio_subnet" type="radio" name="type" value="subnet" onClick="javascript:enableFields()" <tmpl_if name=type_subnet>checked</tmpl_if> />
+                 Subnet: <input type="text" name="network" value="<tmpl_var name=network>" /> /
+	      	     <select name="prefix">
+                        <tmpl_loop name="prefixes">
+                           <option value="<tmpl_var name=id>"  <tmpl_if name=selected>selected="1"</tmpl_if>><tmpl_var name="label"></option>
+                        </tmpl_loop>
+                     </select><br/>
+               <input id="radio_range" type="radio" name="type" value="range" onClick="javascript:enableFields()" <tmpl_if name=type_range>checked</tmpl_if> />
+                 Range: <input type="text" name="from_addr" value="<tmpl_var name=from_addr>" /> - <input type="text" name="to_addr" value="<tmpl_var name=to_addr>" />
+          </td>
+        </tr>
+        <tr>        
+            <td>Vlan: </td>
+            <td>
+                <select name="vlan">
+                    <option value=none>none</option>
+                    <tmpl_loop name="vlans">
+                        <option value="<tmpl_var name=id>" <tmpl_if name=selected>selected</tmpl_if>><tmpl_var name=name> (<tmpl_var name=id>)</option></option>
+                    </tmpl_loop>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Description: </td>
+            <td><textarea cols="40" rows="6" name="description"><tmpl_var name=description></textarea></input></td>
+        </tr>
+</table>
+<input type="submit" name="submit" value="submit">
+</form>
+
+<script language="javascript">
+
+function enableFields() {
+	if(document.form1.radio_range.checked) {
+		document.form1.from_addr.disabled = false;
+		document.form1.to_addr.disabled   = false;
+	} else {
+		document.form1.from_addr.disabled = true;
+		document.form1.to_addr.disabled   = true;
+	}	
+
+	if(document.form1.radio_subnet.checked) {
+		document.form1.network.disabled   = false;
+		document.form1.prefix.disabled    = false;
+	} else {
+		document.form1.network.disabled   = true;
+		document.form1.prefix.disabled    = true;
+	}
+}
+enableFields();
+</script>
+
+<tmpl_include name="_footer.tmpl">

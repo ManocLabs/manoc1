@@ -1,0 +1,102 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="POST">
+<table class="deviceproperties">
+<tr><th colspan="2">System info</th></tr>
+<tr>
+  <td>Ip Address:</td>
+  <td>
+  <input type=hidden name="id" value="<tmpl_var name=id>" />
+  <tmpl_var name=id>
+  </td>
+</tr>
+<tr>
+  <td>Name: *</td>
+  <td><input type="text" name="name" value="<tmpl_var escape=html name=name>" /></td>
+</tr>
+<tr>
+  <td>Model: *</td>
+  <td><input type="text" name="model" value="<tmpl_var escape=html name=model>" /></td>
+</tr>
+<tr><th colspan="2">Location</th></tr>
+<tr>
+  <td>Rack</td>
+  <td>
+    <select name="rack">
+    <tmpl_loop name="rack_list">
+    <option value="<tmpl_var name=id>"
+      <tmpl_if name=selected>selected="1"</tmpl_if>>
+        <tmpl_var name="label">
+    </option>
+    </tmpl_loop>
+    </select>
+</tr>
+<tr>
+  <td>Level:</td>
+  <td><input type="text" name="level" value="<tmpl_var escape=html name=level>" /></td>
+</tr>
+<tr><th colspan="2">Retrieved Info</th></tr>
+<tr>
+  <td>Backup:</td>
+  <td><input type="checkbox" name="backup_enabled" value=1 <tmpl_if name=backup_enabled>checked</tmpl_if> ></td>
+</tr>
+<tr>
+  <td>Get ARP:</td>
+  <td><input type="checkbox" name="get_arp" value=1 <tmpl_if name=get_arp>checked</tmpl_if> ></td>
+</tr>
+<tr>
+  <td>ARP info on VLAN:</td>
+  <td><input type="text" name="vlan_arpinfo" value="<tmpl_var escape=html name=vlan_arpinfo>" /></td>  
+</tr>
+<tr>
+  <td>Get MAT:</td>
+  <td><input type="checkbox" name="get_mat" value=1 <tmpl_if name=get_mat>checked</tmpl_if> ></td>
+</tr>
+<tr>
+  <td>Get dot11:</td>
+  <td><input type="checkbox" name="get_dot11" value=1 <tmpl_if name=get_dot11>checked</tmpl_if> ></td>
+</tr>
+<tr><th colspan="2">Credentials</th></tr>
+<tr>
+  <td>Telnet Password:</td>
+  <td><input type="text" name="telnet_pwd" value="<tmpl_var escape=html name=telnet_pwd>" /></td>  
+</tr>
+<tr>
+  <td>Enable Password:</td>
+  <td><input type="text" name="enable_pwd" value="<tmpl_var escape=html name=enable_pwd>" /></td>  
+</tr>
+<tr>
+  <td>SNMP Version</td>
+  <td>
+    <select name="snmp_ver">
+    <tmpl_loop name="snmp_ver_list">
+    <option value="<tmpl_var name=id>"
+      <tmpl_if name=selected>selected="1"</tmpl_if>>
+        <tmpl_var name="label">
+    </option>
+    </tmpl_loop>
+    </select>
+</tr>
+<tr>
+  <td>SNMP Community:</td>
+  <td><input type="text" name="snmp_com" value="<tmpl_var escape=html name=snmp_com>" /></td>  
+</tr>
+<tr>
+  <td>SNMP Username:</td>
+  <td><input type="text" name="snmp_user" value="<tmpl_var escape=html name=snmp_user>" /></td>  
+</tr>
+<tr>
+  <td>SNMP Password:</td>
+  <td><input type="text" name="snmp_password" value="<tmpl_var escape=html name=snmp_password>" /></td>  
+</tr>
+<tr><th colspan="2">Notes</th></tr>
+<tr>  
+  <td colspan="2"><textarea name="notes" rows="6" cols="40"><tmpl_var escape=html name=notes></textarea></td>
+</tr>
+</table>
+<input type="submit" name="submit" value="submit">
+<input type="submit" name="discard" value="discard">
+</form>
+<p><div class="hint">* If empty will be filled by netwalker</div></p>	
+
+<tmpl_include name="_footer.tmpl">

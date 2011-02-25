@@ -1,0 +1,19 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="post" name="logon">
+<input type="hidden" name="redirect" value="<tmpl_var name=redirect>" />
+<center>
+<table>
+<tr>
+<td>Login:</td><td><input type="text" name="user" /></td>
+</tr>
+<tr>
+<td>Password:</td><td><input type="password" name="password"></td>
+</tr>
+<tr><td></td><td>
+<input value=Login type=submit></td></tr>
+</table>
+</center>
+</form>
+
+<tmpl_include name="_footer.tmpl">

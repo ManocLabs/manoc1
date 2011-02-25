@@ -1,0 +1,24 @@
+<tmpl_include name="_header.tmpl">
+
+<p>Unknown Network Devices!</p>
+
+
+
+<table>
+  <tr>
+     <th colspan="2">From</th>
+     <th colspan="2">To</th>
+     <th>Last seen</th>
+  </tr>
+<tmpl_loop name="unknown_devices">
+       <tr class=results>
+	  <td><manoc_link device id=from_device></td>
+	  <td><manoc_link iface device=from_device iface=from_iface short></td>
+	  <td><tmpl_var name=to_device></td>
+	  <td><tmpl_var name=to_iface></td>
+	  <td><tmpl_var name=date></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+<tmpl_include name="_footer.tmpl">

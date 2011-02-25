@@ -1,0 +1,24 @@
+<table class="iprange-iplist">
+    <tr>
+       <th>Address</th>
+       <th>Last seen</th>
+       <th>Notes</th>
+       <td></td>
+    </tr>
+    <tmpl_loop name="addr_table">
+        <tr>
+            <td class="ip"><manoc_link ip id=ipaddr></td>
+            <td><tmpl_var name=lastseen></td>	    
+            <td><tmpl_var name=notes></td>
+	    <td class="buttons">  
+		<a href="<tmpl_var name=edit_url>"><manoc_icon edit></a>
+                <a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"><manoc_icon remove></a>
+	    </td>
+        </tr>
+    </tmpl_loop>
+</table>
+<tmpl_var name="num_pages">
+
+<tmpl_unless name=first_page><a href="<tmpl_var name=prev_page_link>"> &laquo;Previous page</a></tmpl_unless>
+<tmpl_unless name=last_page><a href="<tmpl_var name=next_page_link>">Next page &raquo;</a></tmpl_unless>
+

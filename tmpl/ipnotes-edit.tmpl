@@ -1,0 +1,21 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="POST">
+<table>
+<input type="hidden" name="ipaddr" value="<tmpl_var name=ipaddr>" />
+<input name="backref" type="hidden" value="<tmpl_var name=backref>" />
+
+<tr>
+  <td>IP Address:</td>
+  <td><manoc_link ip id=ipaddr></td>
+</tr>
+<tr>
+  <td>Notes:</td>
+  <td><textarea name="notes" rows="6" cols="40"><tmpl_var escape=html name=notes></textarea></td>
+</tr>
+</table>
+<input type="submit" name="save"   value="Save" />
+<input type="submit" name="cancel" value="Cancel" />
+</form>
+
+<tmpl_include name="_footer.tmpl">

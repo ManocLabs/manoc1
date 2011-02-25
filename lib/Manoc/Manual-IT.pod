@@ -1,0 +1,65 @@
+=head1 NAME 
+
+Manoc::Manual-IT - Manoc Manual, Italian version
+
+=head1 DESCRIZIONE
+
+Questo documento contiene la bozza del manuale del Manoc.
+
+=head1 UTILIZZO
+
+TODO
+
+=head1 IMPLEMENTAZIONE
+
+Tutti i componenti hanno in comune l'accesso al DB e l'uso di un file
+di configurazione C<$MANOC_HPME/etc/manoc.conf>
+
+=head2 Database
+
+=head3 Generalità
+
+La parte di ORM è attualmente affidata a L<Manoc::DB> utilizzando
+L<DBIx::Class>.  
+
+I campi che rapresentano istanti temporali, tipo firstseen o lastseen,
+sono integer, riempiti direttamente con syscall time(), questo
+semplifica alcune parti dell'implementazione e permette di ignoreare
+di formato dovuti ad esempio alla localizzazione.
+
+=head3 Gestione storico
+
+Per le informazioni presenti in alcune tabelle, ad esempio MAT e ARP,
+è necessario disporre di una funzionalità di storico, in modo da poter
+sapere in quale intervallo temporale l'informazione è stata valida.
+
+La soluzione prevede l'uso del flag archived: i job che aggiornano le
+tabelle arp e mat considerano solo i record in cui archived=0, mentre
+esiste un job (archiver) che periodicamente aggiorna le due tabelle
+impostando archived=1 per tutti i recordi in cui lastseen è più
+vecchio di una soglia prefissata. Ad esempio se la soglia fosse 24h ci
+eviterebbe di creare una entry al giorno per tutti gli host che
+vengono spenti la notte.
+
+
+=head2 Netwalker
+
+Partendo dall'elenco di dispositivi presenti nella tabella devices si
+connette via snmp su tutti gli switch per prenderne la
+mac-address-table.  Ad alcuni intervalli di tempo più grandi, controllati dal
+parametro netwalker.if_interval, viene anche aggiornato lo stato delle
+porte nella tabella if_status.
+
+TODO udpate_db
+
+=head2 Interfaccia Web
+
+L<Manoc::App>
+
+E' costituita da un unico script CGI che usa il framework
+L<CGI::Application> e L<HTML::Template> per implementare insieme a
+L<Manoc::DB> un semplice framework MVC.
+
+
+=cut
+

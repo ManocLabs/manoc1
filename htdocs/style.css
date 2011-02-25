@@ -1,0 +1,184 @@
+body { 
+	background:	white;
+	color:		black;
+    	font-family:	sans-serif;
+	font-size:	11pt;
+}
+
+
+div.main {
+	padding-right: 20px;
+	padding-left:  20px;
+}
+
+div.contents {
+	padding-left:  20px;
+}
+
+img.logo {
+	 margin-right: 10px;
+	 float: left;
+}
+
+img.shortcut {
+	height: 1em;
+}
+
+h1, h2, h3 {
+    color:	navy;
+}
+
+h1.big-title {
+    text-align: center;
+    font-size:	32pt;
+}
+
+h1 {
+   font-size:	24pt;
+}
+
+h2 {
+   font-size:	18pt;
+}
+
+h3 {
+   font-size:	14pt;
+}
+
+/********************************************************/
+/*                      Forms                           */
+/********************************************************/
+
+form.inline {
+	display: inline;
+}
+
+form.minisearch {
+	display: inline;
+}
+table.minisearch {
+	display: inline;
+}
+
+/********************************************************/
+/*                      Navbar                          */
+/********************************************************/
+
+div.nav_center  {
+  text-align:   center;
+}
+
+div.nav_center li {
+  display: inline;
+  margin: 5pt;
+}
+
+div.nav_center  ul {
+	border-bottom: thin solid;
+}
+
+div.nav li {
+  display: inline;
+  margin: 5pt;
+}
+
+div.nav  ul {
+	border-bottom: thin solid;
+}
+
+a img { border-style: none; }
+
+a {
+	font-weight: bold;
+	text-decoration: none;
+	color: blue;
+}
+
+a:hover {
+	background: cyan;
+}
+
+span.button {
+	background: #DDDDDD;
+	padding: 0em .2em 0em .2em;
+	border: solid 1px;
+	font-size: 90%;
+}
+
+span.button a {
+	font-weight: normal;
+	color: black
+}
+
+span.button a:hover {
+	background: #DDDDDD;
+	color: white;
+}
+
+/********************************************************/
+/*                       tables                         */
+/********************************************************/
+
+td.but_cen {
+        padding-left: 230px;
+}
+
+td.search_cen {
+        padding-left: 100px;
+}
+
+
+td.buttons {
+      width: 40px;
+}
+
+
+tr.results td {
+	padding-left: 15pt;
+}
+
+table tr.results:hover {
+	background: cyan;
+}
+
+td.numeric {
+	text-align: right;
+}
+
+table.deviceproperties th {
+	text-align: left;
+}
+
+table.iprange-iplist {
+	width: 70%;			    
+}
+
+/********************************************************/
+/*                   miscellanea                        */
+/********************************************************/
+
+div.hint {
+	text-style: italic;
+}
+
+div.small {
+	font-size: 10px;
+	display: inline;
+}
+div.info {
+	text-align: left;
+}
+
+
+/********************************************************/
+/*                   columns hack                       */
+/********************************************************/
+
+
+div.column1 { float: left; }
+
+div.column2 { 
+        fixed: left; 
+	margin-left: 300px; 
+	text-align: left; 
+}

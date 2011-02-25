@@ -1,0 +1,34 @@
+<tmpl_include name="_header.tmpl">
+
+<h2>Vlan Statistics</h2>
+
+<tmpl_loop name="vlan_table">
+  <tmpl_if name="__first__">
+<table>
+       <tr>
+	 <th>Vlan</th>
+	 <th>MAC Addresses</th>
+	 <th>IP Adresses</th>
+       </tr>
+  </tmpl_if>
+       <tr class=results>
+	  <td class="numeric"><tmpl_var name="vlan"></td>
+	  <td class="numeric"><tmpl_var name="macaddr"></td>
+	  <td class="numeric"><tmpl_var name="ipaddr"></td>
+       </tr>
+  <tmpl_if name="__last__">
+	</table>
+  </tmpl_if>
+</tmpl_loop>
+
+<h2>DB Statistics</h2>
+<table>
+<tmpl_loop name="db_stats">
+       <tr class=results>
+	  <td><tmpl_var name="name"></td>
+	  <td class="numeric"><tmpl_var name="val"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+<tmpl_include name="_footer.tmpl">

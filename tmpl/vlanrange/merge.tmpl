@@ -1,0 +1,46 @@
+<tmpl_include name=_header.tmpl>
+
+<table>
+    <tr align="left">
+        <th width=80>Name:</th>
+        <td width=160><tmpl_var name=name></td>
+    </tr>
+    <tr align="left">
+        <th width=80>Start:</th>
+        <td width=160><tmpl_var name=start></td>
+    </tr>
+    <tr align="left">
+        <th width=80>End:</th>
+        <td width=160><tmpl_var name=end></td>
+    </tr>
+</table>
+
+<h2>Merge Options</h2>
+
+<form name="form1" method="POST">
+    <input type=hidden name="id" value=<tmpl_var name="id">>
+    <table>
+	<tr>Merge with:</tr>
+	<tr>
+            <th align=left>Name</th><th>Start</th><th>End</th>
+	</tr>
+	<tmpl_loop name=neighs>
+            <tr>
+                <td><input type=radio name=sel_vlan_range_id value="<tmpl_var name=id>" <tmpl_if name=checked>checked</tmpl_if>><manoc_link vlanrange id=id name=name>&nbsp;</td>
+                <td align=center><tmpl_var name=start></td>
+                <td align=center><tmpl_var name=end></td>
+            </tr>
+        </tmpl_loop>
+        <tr>
+            <td>Merged vlan range name</td>
+            <td colspan=2><input type="text" value="<tmpl_var name=new_name>" name="new_name"></input></td>
+        </tr>
+        <tr>
+            <td><input type="submit" name="submit" value="submit"></td>
+        </tr>
+    </table>
+</form>
+<br>
+<a href="<tmpl_var name=base_url>/manoc/vlanrange/"> Back to vlan range list </a>
+
+<tmpl_include name=_footer.tmpl>

@@ -1,0 +1,119 @@
+<tmpl_include name=_header.tmpl>
+ 
+<link rel="stylesheet" type="text/css" href="<tmpl_var name=base_url>/js/tree_view/treeview.css">
+<script type="text/javascript" src="<tmpl_var name=base_url>/js/tree_view/yahoo-dom-event.js"></script>
+<script type="text/javascript" src="<tmpl_var name=base_url>/js/tree_view/treeview-min.js"></script>
+
+<script type="text/javascript">
+
+//global variable to allow console inspection of tree:
+var tree;
+
+//anonymous function wraps the remainder of the logic:
+(function() {
+
+	//function to initialize the tree:
+    function treeInit() {
+  	
+	//instantiate the tree:
+       tree = new YAHOO.widget.TreeView("treeDiv");
+
+	
+
+       // Expand and collapse happen prior to the actual expand/collapse,
+       // and can be used to cancel the operation
+       tree.subscribe("expand", function(node) {
+              YAHOO.log(node.index + " was expanded", "info", "example");
+              // return false; // return false to cancel the expand
+           });
+
+       tree.subscribe("collapse", function(node) {
+              YAHOO.log(node.index + " was collapsed", "info", "example");
+           });
+
+       // Trees with TextNodes will fire an event for when the label is clicked:
+       tree.subscribe("labelClick", function(node) {
+	     	location.href = "<tmpl_var name=base_url>/manoc/iprange/list?expnode="+ node.index + "&name=" + node.label;
+
+              YAHOO.log(node.index + " label was clicked", "info", "example");
+           });
+
+       //The tree is not created in the DOM until this method is called:
+      	tree.render();
+
+	<tmpl_if name=expnode>
+	var temp_node =	tree.getNodeByIndex(<tmpl_var name=expnode>);
+	while(!temp_node.isRoot()){
+ 	temp_node.expand();
+	temp_node=temp_node.parent;	
+	}
+	temp_node.expand();
+	</tmpl_if>
+    }
+
+	//Add an onDOMReady handler to build the tree when the document is ready
+    YAHOO.util.Event.onDOMReady(treeInit);
+
+
+})();
+</script>
+
+<div class="column1">
+<div id="treeDiv">
+<ul><li><tmpl_var name=html_code></li></ul>
+</div>
+</div>
+
+
+<div class="column2">
+<div class="tabber">
+
+<div class="tabbertab">
+<h2>Subnet</h2>
+<table>
+    <tr>
+        <th>Name:</th>
+        <td><tmpl_var name=name></td>
+    </tr>
+    <tr>
+        <th>Description:</th>
+        <td><tmpl_var name=description></td>
+    </tr>
+    <tmpl_if name=network>
+        <tr>
+            <th>Network:</th>
+            <td><tmpl_var name=network> / <tmpl_var name=prefix></td>
+        </tr>
+        <tr>
+            <th>Netmask:</th>
+            <td><tmpl_var name=netmask></td>
+        </tr>
+    <tmpl_else>    
+    <tr>
+        <th>Range:</th>
+        <td><tmpl_var name=from_addr> - <tmpl_var name=to_addr></td>
+    </tr>
+    </tmpl_if>
+    <tr> 
+     <td><span class="button"><a href="<tmpl_var name=details_link>">View Details</a></span></td>
+     <td><span class="button"><a href="<tmpl_var name=edit_link>">Edit</a></span></td>
+    </tr>
+</table>
+</div>
+
+<div class="tabbertab">
+<h2>Subranges</h2>
+<tmpl_var name=rangelist_widget>
+<span class="button"><a href="<tmpl_var name=add_link>"><manoc_icon add>Add Subrange</a></span>
+
+</div>
+
+
+
+
+
+
+</div>
+</div>
+
+<tmpl_include name=_footer.tmpl>

@@ -1,0 +1,32 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="POST">
+<table>
+<tr>
+  <td>Ip Address:</td>
+  <td>
+  <input type=hidden name="id" value="<tmpl_var name=id>" />
+  <tmpl_var name=id> (<tmpl_var name=name>)
+  </td>
+</tr>
+<tr>
+  <td>Old Rack</td>
+  <td><tmpl_var name=rack></td>
+</tr>
+<tr>
+  <td>New Rack</td>
+  <td>
+    <select name="rack">
+    <tmpl_loop name="rack_list">
+    <option value="<tmpl_var name=id>"
+      <tmpl_if name=selected>selected="1"</tmpl_if>>
+        <tmpl_var name="label">
+    </option>
+    </tmpl_loop>
+    </select>
+</tr>
+</table>
+<input type="submit" name="submit" value="submit">
+</form>
+
+<tmpl_include name="_footer.tmpl">

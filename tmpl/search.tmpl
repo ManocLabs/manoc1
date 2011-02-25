@@ -1,0 +1,160 @@
+<tmpl_include name="_header.tmpl">
+
+
+<form method="get"  enctype="multipart/form-data">
+
+<input type="hidden" name="advanced" value="<tmpl_var name=advanced_search>">
+
+<table align="center" >
+
+
+<tr>
+<td  class="search_cen" align="center">
+<input type="text" name="q" value="<tmpl_var name=q>" size="50"/>
+
+<div class="small">
+ <tmpl_if name=advanced_search>
+<a href="<tmpl_var name=simple_search_link>">Simple Search &raquo;</a>
+<tmpl_else>
+<a href="<tmpl_var name=adv_search_link>">Advanced Search &raquo;</a>
+</tmpl_if>
+</div>
+</td>
+
+</tr>
+
+<tmpl_if name=advanced_search>
+<tr>
+<td class="search_cen"> Type: 
+<!-- tmpl_var name="targets_radiobox" --></td>
+</tr>
+<tr>
+<td class="search_cen" >Limit:
+<input type="text" name="limit" value="<tmpl_var name=limit>"/>  
+(Default is <tmpl_if name="default_limit"><tmpl_var name="default_limit"> days<tmpl_else> no limits</tmpl_if>)
+</td>
+</tr>
+</tmpl_if>
+                  
+<tr>
+<td class="but_cen">
+<input value=Search type=submit>
+</td>
+</tr>
+
+</table>
+
+<p><tmpl_var name="search_message" ></p>
+<tmpl_loop name="ip_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+  <li>IP <manoc_link ip id=ip>
+     <tmpl_loop name="items"> 
+       <tmpl_if name="__first__"><ul></tmpl_if>	
+       <li>MAC Address <manoc_link mac id=mac></li>
+       <tmpl_if name="__last__"></ul></tmpl_if>	
+     </tmpl_loop> 
+  </li>
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="subnet_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+  <li>Subnet <manoc_link iprange id=subnet_name>
+      <ul>	
+     <tmpl_if name="prefix">
+         <li>Ip Range: <tmpl_var name="from_addr">/<tmpl_var name="prefix"> </li>
+     <tmpl_else>
+        <li>From Address:<manoc_link ip id=from_addr> To Address: <manoc_link ip id=to_addr> </li>
+     </tmpl_if>
+     </ul>
+  </li>
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="mac_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+  <li><manoc_link mac id=mac>
+  <tmpl_loop name="items"> 
+     <tmpl_if name="__first__"><ul></tmpl_if>	
+     <li>
+       <tmpl_if name=iface>Interface <manoc_link iface device=device iface=iface short> on <manoc_link device id=device></tmpl_if>
+       <tmpl_if name=ip>IP Address <manoc_link ip id=ip></tmpl_if>
+ <tmpl_if name=ip_del>IP Address (Deleted Device) <manoc_link ip id=ip_del></tmpl_if>
+	</li>
+       <tmpl_if name="__last__"></ul></tmpl_if>	
+     </tmpl_loop> 
+  </li>
+
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="logon_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+  <li><tmpl_var escape=html name=user> logged on
+     <tmpl_loop name="items"> 
+       <tmpl_if name="__first__"><ul></tmpl_if>	
+       <li>Host <manoc_link ip id=host></li>
+       <tmpl_if name="__last__"></ul></tmpl_if>	
+     </tmpl_loop> 
+  </li>
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="inventory_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+
+  <li><tmpl_if name=name><tmpl_var escape=html name=name>:</tmpl_if> 
+     <tmpl_if name=building>Building <manoc_link building id=building name=build_name></tmpl_if>
+     <tmpl_if name=device>Device <manoc_link device id=device></tmpl_if>
+     <tmpl_if name=host>Host <manoc_link ip id=host></tmpl_if>     
+     <tmpl_if name=iprange>Subnet <manoc_link iprange id=iprange> (<tmpl_var name=desc>)</tmpl_if>
+     <tmpl_if name=vlan>Vlan <manoc_link vlan id=vlan></tmpl_if>    
+     <tmpl_if name=vlan_range>Vlan Range <manoc_link vlanrange id=vlan_range name=name></tmpl_if>     
+ </li>
+
+
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+
+<tmpl_loop name="notes_results">
+  <tmpl_if name="__first__">
+  <ul class="results">	
+  </tmpl_if>
+
+
+ <tmpl_if name=device> <li>Device:<manoc_link iface device=device iface=interface short> </tmpl_if>
+ <tmpl_if name=ip> <li>Device: <manoc_link ip id=ip> </tmpl_if>
+
+   <ul>  <li> Notes: <tmpl_var escape=html name=notes> 
+     </li> </ul>
+  </li>
+
+  <tmpl_if name="__last__">
+  </ul>
+  </tmpl_if>
+</tmpl_loop>
+
+
+<tmpl_include name="_footer.tmpl">
+

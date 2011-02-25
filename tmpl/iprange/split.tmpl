@@ -1,0 +1,56 @@
+<tmpl_include name="_header.tmpl">
+
+<tmpl_if name=message></tmpl_if>
+
+<form name="form1" method="POST">
+<input type=hidden name="name" value="<tmpl_var name=name>" />
+<input type=hidden name="parent" value="<tmpl_var name=parent>" />
+<table>
+	<tr>
+		<th>Name:</th><td><tmpl_var name=name></td>
+	</tr>
+	<tr>
+		<th>Range:</th><td><tmpl_var name=from_addr> - <tmpl_var name=to_addr></td>
+	</tr>
+</table>
+
+<h2>Split Options</h2>
+
+<table>
+	<tr>
+		<td>Name Subnet 1: </td><td><input type="text" name="name1" value="<tmpl_var name=name1>"/></td>
+	</tr>
+	<tr>
+		<td>Name Subnet 2: </td><td><input type="text" name="name2" value="<tmpl_var name=name2>"/></td> 
+	</tr>
+	<tr>
+		<td>Split at: </td><td><input type="text" name="split_point_addr" value="<tmpl_var name=split_point_addr>"/></td> 
+	</tr>
+</table>
+<input type="submit" name="submit" value="submit">
+</form>
+
+<script language="javascript">
+
+function enableFields() {
+	if(document.form1.radio_range.checked) {
+		document.form1.from_addr.disabled = false;
+		document.form1.to_addr.disabled   = false;
+	} else {
+		document.form1.from_addr.disabled = true;
+		document.form1.to_addr.disabled   = true;
+	}	
+
+	if(document.form1.radio_subnet.checked) {
+		document.form1.network.disabled   = false;
+		document.form1.prefix.disabled    = false;
+	} else {
+		document.form1.network.disabled   = true;
+		document.form1.prefix.disabled    = true;
+	}
+}
+enableFields();
+</script>
+
+
+<tmpl_include name="_footer.tmpl">

@@ -1,0 +1,59 @@
+<tmpl_include name="_header.tmpl">
+
+<tmpl_loop name="devices">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>Used in</h2>
+    <table class="results">
+       <tr>
+	 <th>Device</th>
+	 <th>Interface</th>
+	 <th>Broadcast</th>
+	 <th>Channel</th>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td class="ipaddr"><manoc_link device id=device></td>
+	  <td><manoc_link iface device=device iface=interface short></td>
+	  <td><manoc_link ssid id=ssid></td>
+	  <td><tmpl_var name="broadcast"></td>
+	  <td class="numeric"><tmpl_var name="channel"></td>
+       </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+
+<tmpl_loop name="clients">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>Associated clients</h2>
+    <table class="results">
+       <tr>
+	 <th>Device</th>
+	 <th>Mac Address</th>
+	 <th>IP Address</th>
+	 <th>Vlan</th>
+	 <th>State</th>
+	 <th>Quality</th>
+ 	 <td></td>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td><manoc_link device id="device"></td>
+	  <td><manoc_link mac id="macaddr"></td>
+	  <td class="ipaddr"><manoc_link ip id=ipaddr></td>
+	  <td><manoc_link vlan id=vlan></td>
+	  <td><tmpl_var name="state"></td>
+	  <td><tmpl_var name="quality"></td>
+	  <td><a href="<tmpl_var name=detail_link>">details</a></td>
+       </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_include name="_footer.tmpl">

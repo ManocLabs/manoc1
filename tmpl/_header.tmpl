@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+<title>Manoc - <tmpl_var name=title></title>
+<link rel="stylesheet" type="text/css" href="<tmpl_var name=base_url>/style.css" />
+
+<link rel="stylesheet" type="text/css" href="<tmpl_var name=base_url>/tabber.css" />
+<script type="text/javascript" src="<tmpl_var name=base_url>/js/tabber.js"></script>
+
+<script type="text/javascript" src="<tmpl_var name=base_url>/js/common.js"></script>
+
+<!-- YUI SCRIPT AND CSS -->
+<script type="text/javascript" src="<tmpl_var name=base_url>/js/yahoo-dom-event.js"></script> 
+ 
+
+
+
+
+</head>
+
+<body>
+<tmpl_if name="big_title">
+<div class="nav_center">
+<tmpl_else>
+<div class="nav">
+</tmpl_if>
+<ul >
+ <li><a href="<tmpl_var name=base_url>/manoc/search">Search</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/asset">Asset</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/netdb">NetDB</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/ssid/">SSID</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/reports/">Reports</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/user/">Users</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/about">About</a></li>
+ <li><a href="<tmpl_var name=base_url>/manoc/logout">Logout</a></li>
+</ul>
+</div>
+
+<div class="main">
+
+<tmpl_if name=big_title><h1 class="big-title"><tmpl_else><h1></tmpl_if><tmpl_var name=title></h1>
+
+<div class="contents">
+
+<tmpl_if name=message><p><tmpl_var name=message></p></tmpl_if>

@@ -1,0 +1,17 @@
+<tmpl_include name="_header.tmpl">
+
+<table>
+       <tr>
+	 <th>Mac Address</th>
+	 <th># Devices</th>
+       </tr>
+<tmpl_loop name="multimacs">
+       <tr class=results>
+	  <td><manoc_link mac id=macaddr></td>
+	  <td class="numeric"><tmpl_var name="devs"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+
+<tmpl_include name="_footer.tmpl">

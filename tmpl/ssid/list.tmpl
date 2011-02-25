@@ -1,0 +1,23 @@
+<tmpl_include name="_header.tmpl">
+
+<tmpl_loop name="ssids">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <table class="results">
+       <tr>
+	 <th>Name</th>
+	 <th>Devices</th>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td><manoc_link ssid id=ssid></a>
+	  </td>
+	  <td class="numeric"><tmpl_var name="ndev"></td>
+       </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_include name="_footer.tmpl">

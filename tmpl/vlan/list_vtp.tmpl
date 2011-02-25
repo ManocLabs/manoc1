@@ -1,0 +1,35 @@
+<tmpl_include name="_header.tmpl">
+
+    <tmpl_if name=message></tmpl_if>
+
+    <table>
+        <th align='center' width=80>Vlan</th>
+        <th align='left' width=180>Name</th>
+        <th align='left' width=180>Name On DB</th>
+        <tmpl_loop name="vlans">
+            <tr>
+	        <tmpl_if name="ondb">
+		<td align='center'><tmpl_var name="id"></td>
+	      	<tmpl_else>		     
+		<td align='center'><manoc_link vlan id=id></td>		
+		</tmpl_if>
+
+		<td align='left'><tmpl_var name="name_vtp"></td>
+                <td align='left'><tmpl_var name="name_db"></td>
+	
+		<td align='right'>
+		<tmpl_if name="merge">	
+		<a href="merge_name?id=<tmpl_var name="id">&name=<tmpl_var
+		name="name_vtp">">  <manoc_icon merge> </a>
+		</tmpl_if>		
+		<tmpl_if name="ondb">
+		<a href="add_vlan_ondb?id=<tmpl_var name="id">&name=<tmpl_var name="name_vtp">"> 
+		<manoc_icon add> </a>
+		</tmpl_if>
+		</td>
+
+	    </tr>
+        </tmpl_loop>
+    </table>
+
+<tmpl_include name="_footer.tmpl">

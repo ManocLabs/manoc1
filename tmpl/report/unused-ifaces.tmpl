@@ -1,0 +1,43 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="get">
+<table>
+<tr>
+<td>Device:</td>
+<td>
+	<select name=device>
+	<tmpl_loop name=device_list>
+	<option value="<tmpl_var name=id>" 
+        	<tmpl_if name=selected>selected="1"</tmpl_if>><tmpl_var	name=label>
+      	</option>
+	</tmpl_loop>
+	</select>
+</td>
+</tr>
+<tr>
+<td>Days:</td>
+<td><input name="days" type="text" />
+</tr>
+<tr>
+<td></td><td><input type="submit"/></td>
+</tr>
+</table>
+</form>
+
+<table>
+       <tr>
+	 <th>Device</th>
+	 <th>Interface</th>
+	 <th>Description</th>
+       </tr>
+<tmpl_loop name="unused_ifaces">
+       <tr class=results>
+	  <td><manoc_link device id=device></td>
+	  <td><manoc_link iface device=device iface=interface short></td>
+	  <td><tmpl_var name="description"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+
+<tmpl_include name="_footer.tmpl">

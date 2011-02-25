@@ -1,0 +1,27 @@
+<tmpl_include name="_header.tmpl">
+
+    <tmpl_if name=message></tmpl_if>
+
+    <table>
+        <manoc_bar link=new_vlan_url colspan=5 text="Add Vlan"/>
+        <th align='center' width=80>Vlan</th>
+        <th align='left' width=180>Name</th>
+        <th align='left' width=180>Vlan Range</th>
+        <th align='left' width=280>Description</th>
+        <th align='center' width=70>Commands</th>
+        <tmpl_loop name="vlans">
+            <tr>
+                <td align='center'><manoc_link vlan id=id></td>
+                <td align='left'><tmpl_var name="name"></td>
+                <td align='left'><manoc_link vlanrange id=vlan_range_id name=vlan_range></td>
+                <td align='left'><tmpl_var name="description"></td>
+                <td align='center'>
+                    <a href="<tmpl_var name=edit_url>"> <manoc_icon edit> </a>
+                    <a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"> <manoc_icon remove> </a>
+                </td>
+            </tr>
+        </tmpl_loop>
+        <manoc_bar link=new_vlan_url colspan=5 text="Add Vlan"/>
+    </table>
+
+<tmpl_include name="_footer.tmpl">

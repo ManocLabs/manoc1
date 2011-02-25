@@ -1,0 +1,44 @@
+# -*- cperl -*-
+use CGI::Application::Emulate::PSGI;
+use Manoc::App;
+use Manoc::WapiApp;
+use Manoc::Utils;
+
+use Plack::App::URLMap;
+use Plack::App::File;
+
+use File::Spec;
+
+my $manoc_home = '/home/manoc/production';
+
+my $manoc_conf = $ENV{MANOC_CONF};
+$manoc_conf ||= File::Spec->catfile($manoc_home,
+                                    'etc', 'manoc.conf');
+
+$manoc_root = File::Spec->catfile($manoc_home, 'htdocs');
+
+my $app_manoc = CGI::Application::Emulate::PSGI->handler(sub {
+    my $app = Manoc::App->new(
+       home => $manoc_home,
+       conf => $manoc_conf
+      );
+    $app->run();
+});
+
+my $app_wapi = CGI::Application::Emulate::PSGI->handler(sub {
+    my $app = Manoc::WapiApp->new(
+       home => $manoc_home,
+       conf => $manoc_conf
+      );
+    $app->run();
+});
+
+
+
+my $app_static = Plack::App::File->new(root => $manoc_root);
+
+my $url_map = Plack::App::URLMap->new;
+$url_map->mount("/manoc/manoc" => $app_manoc);
+$url_map->mount("/manoc/wapi" => $app_wapi);
+$url_map->mount("/manoc" => $app_static);
+my $app = $url_map->to_app;

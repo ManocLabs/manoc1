@@ -1,0 +1,75 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+
+use Manoc::DB;
+use SQL::Translator;
+
+my ($debug, $trace, $no_comments, $show_warnings, $add_drop_table, $validate);
+my $help;
+
+GetOptions(
+	   'debug'		=> \$debug, 
+	   'trace'		=> \$trace,
+	   'no_comments'	=> \$no_comments,
+	   'warnings'		=> \$show_warnings,
+	   'drop_table'		=> \$add_drop_table,
+	   'validate' 		=> \$validate,
+	   'help|?'		=> \$help
+ );
+
+pod2usage(1) if ( $help || !$ARGV[0] );
+
+
+my $translator = 
+    SQL::Translator->new(
+			 debug                => $debug		|| 0,
+			 trace                => $trace		|| 0,
+			 no_comments          => $no_comments	|| 0,
+			 show_warnings        => $show_warnings	|| 0,
+			 add_drop_table       => $add_drop_table || 0,
+			 validate             => $validate	|| 0,
+			 parser_args          => {
+			     'DBIx::Schema'    => 'Manoc::DB',
+			 },
+			 );
+  
+my $be = shift @ARGV;
+
+$translator->parser('SQL::Translator::Parser::DBIx::Class');
+$translator->producer("SQL::Translator::Producer::$be");
+  
+my $output = $translator->translate() or die
+    "Error: " . $translator->error;
+
+print $output;
+exit 1;
+
+=head1 NAME
+
+manoc_create_ddl - Generate a DDL from Manoc::DB classes
+
+=head1 SYNOPSIS
+
+manoc_create_ddl [options] producer
+
+ Options:
+   -help
+   -debug
+   -trace
+   -no_comments
+   -warnings
+   -drop_table
+   -validate
+
+=head1 SEE ALSO
+
+SQL::Translator DBIx::Class Manoc::DB
+
+=cut

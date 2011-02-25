@@ -1,0 +1,23 @@
+<tmpl_include name="_header.tmpl">
+
+<p>Fee! Fie! Foe! Fum! I smell an hub!</p>.
+
+<table>
+       <tr>
+	 <th>Device</th>
+	 <th>Interface</th>
+	 <th>Description</th>
+	 <th>Hosts</th>
+       </tr>
+<tmpl_loop name="multihost_ifaces">
+       <tr class=results>
+	  <td><manoc_link device id=device></td>
+	  <td><manoc_link iface device=device iface=interface short></td>
+	  <td><tmpl_var escape=html name="description"></td>
+	  <td class="numeric"><tmpl_var name="count"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+
+<tmpl_include name="_footer.tmpl">

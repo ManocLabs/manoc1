@@ -1,0 +1,37 @@
+#!/usr/bin/perl -T
+use strict;
+
+eval 'use local::lib "../support"';
+
+use lib "../lib";
+use File::Spec;
+
+my $DEBUG = 1;
+
+eval q{
+    use Manoc::App;
+    use Manoc::Utils;
+
+    my $manoc_conf = $ENV{MANOC_CONF};
+    $manoc_conf ||= File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+				    'etc', 'manoc.conf');
+
+    -f $manoc_conf or die "Cannot find conf file '$manoc_conf'\n";
+
+    my $app = Manoc::App->new(
+                            home => Manoc::Utils::get_manoc_home(),
+                            conf => $manoc_conf
+                            );
+    $app->run();
+};
+
+if ($@) {
+    print "Content-Type: text/html\r\n\r\n";
+    print "<html>\n<head><title>Manoc Error</title></head>\n";
+    print "<h1>Manoc Internal Error</h1>\n";
+    if ($DEBUG) {        
+        print "<pre>$@</pre>";
+    }
+    print "</body></html>\n"
+};
+exit 0;

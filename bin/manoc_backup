@@ -1,0 +1,210 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+#use Manoc::SNMPInfo;
+use Manoc::DB;
+use Manoc::Utils;
+use Manoc::CiscoUtils;
+use Config::Simple;
+use Getopt::Long;
+use Pod::Usage;
+use Carp;
+
+my $Logger;	    # log4perl
+my $Schema;	    # DB connection
+my $Debug;	    # debug flag
+my $Comm;	    # community
+my $Conf;	    # configuration
+my $Timestamp;  # timestamp associated to this walk
+my %Report;     # hash for backup report
+
+sub visit_all {
+    my ($res, $message);
+    
+    #Get devices from DB
+    my @device_ids = $Schema->resultset('Device')->get_column('id')->all;
+    my %visited = map {$_ => 0} @device_ids;
+
+    #Visit all devices
+    foreach my $host (@device_ids) {
+	($res, $message) = do_device($host, \%visited);
+	if (!$res) {
+	    $Logger->error("configuration for $host not saved: $message");
+	    $Report{error}++;
+	} else {
+	    $Logger->debug("$host done");
+	}            
+    }
+}
+
+sub do_device {
+    my ($device_id, $visited_ref, $report_ref) = @_;
+    my ($config, $message, $res);
+
+    #Check device id
+    my $device = $Schema->resultset('Device')->find($device_id);
+    $device or return(0, "$device_id not in device list");
+    
+    if ($device->backup_enabled == 1) {
+        #Get configuration via telnet
+        ($config, $message) = Manoc::CiscoUtils->get_config($device_id, $Schema);
+        $config or return(0, $message);
+        
+        #Update configuration in DB
+        ($res, $message) = update_device_config($device_id, $config);
+        $res or return(0, $message);
+        
+        #Update "visited" structure
+        $visited_ref->{$device_id} = 1;
+        
+        return(1, "Ok");
+        
+    } else {
+	#Backup disabled
+        $Logger->info("device $device_id has backup disabled");
+        $Report{not_updated}++;
+        return(1, "Backup disabled");
+        
+    }  
+}
+
+sub update_device_config {
+    my ($device_id, $config) = @_;
+    my $dev_config;
+    
+    #Get device configuration from DB
+    $dev_config = $Schema->resultset('DeviceConfig')->find({device => $device_id});
+        
+    #Update entry
+    if ($dev_config) {
+        
+        #Already up to date
+        if ($config eq $dev_config->config) {
+            
+            $dev_config->last_visited($Timestamp);
+            $dev_config->update or return(0, "Impossible update DB");
+            $Logger->info("$device_id backup is up to date");
+            $Report{up_to_date}++;
+          
+        #Update configuration
+        } else {
+            
+            $dev_config->prev_config($dev_config->config);
+            $dev_config->prev_config_date($dev_config->config_date);
+            $dev_config->config($config);
+            $dev_config->config_date($Timestamp);
+            $dev_config->last_visited($Timestamp);
+            $dev_config->update or return(0, "Impossible update DB");
+            $Logger->info("$device_id backup updated");
+            $Report{updated}++;
+            
+        }
+       
+    } else {
+	#Create DB entry
+ 
+        $Schema->resultset('DeviceConfig')->create({
+                                                        device       => $device_id,
+                                                        config       => $config,
+                                                        config_date  => $Timestamp,
+                                                        last_visited => $Timestamp        
+                                                   }) or return(0, "Impossible update DB");
+        $Logger->info("$device_id backup created");
+        $Report{created}++;
+        
+    }
+        
+    return(1, "Ok");   
+}
+
+########################################################################
+
+sub check_lastrun {
+    my $interval =  Manoc::Utils::str2seconds($Conf->param("backup.interval"));
+    
+    $interval or $Logger->logdie("backup.interval not configured");
+
+    my $last_run_entry = $Schema->resultset('System')->find("backup.lastrun");
+    my $last_run_date  = $last_run_entry ? $last_run_entry->value : 0;
+
+    return ($Timestamp - $last_run_date > $interval);
+}
+
+
+sub update_lastrun {
+    $Schema->resultset('System')->update_or_create(
+						   name => "backup.lastrun",
+						   value => $Timestamp
+						   );
+}
+
+########################################################################
+
+sub main {
+    my ($conf_file, $help, $man);
+    my ($device, $force_ifstatus, $serial);
+
+    GetOptions(
+               'device=s'		=> \$device,
+               'debug'			=> \$Debug,
+               'conf=s'			=> \$conf_file,
+               'help|?'			=> \$help,
+               'man'			=> \$man,	       
+              ) or pod2usage(2);
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    #Search and open config file
+    if (!defined $conf_file) {
+        $conf_file = "/etc/manoc.conf";
+        -f $conf_file or $conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(), 'etc', 'manoc.conf');
+        -f $conf_file or die 'Cannot find manoc.conf';
+    }
+    $Debug and print  "Reading conf from $conf_file\n";
+    $Conf = new Config::Simple($conf_file);
+
+    #Start logger 
+    $Logger = Manoc::Utils::init_log(
+				     conf	=> $Conf, 
+				     name	=> 'backup.log',	     
+				     debug	=> $Debug
+				     );
+    $Logger || die "Cannot init logger";
+    
+    #Connect to DB
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf));
+	$Schema or $Logger->logconfess("cannot connect to DB");
+	
+    $Timestamp = time();
+   
+    check_lastrun or exit(0);
+ 
+    #Report structure initialization
+    $Report{up_to_date}  = 0;
+    $Report{updated}     = 0;
+    $Report{not_updated} = 0;
+    $Report{created}     = 0;
+    $Report{error}      = 0;
+	
+    #Start backup
+    visit_all();
+    
+    #Print final report
+    $Logger->info("Backup Done");
+    $Logger->info("Configurations up to date:  $Report{up_to_date}");
+    $Logger->info("Configurations updated:     $Report{updated}");
+    $Logger->info("Configurations not saved:   $Report{not_updated}");
+    $Logger->info("New configurations created: $Report{created}");
+    $Logger->info("Errors occurred:            $Report{error}");
+    
+    update_lastrun;
+
+    exit 0;
+}
+
+main;

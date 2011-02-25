@@ -1,0 +1,58 @@
+<tmpl_include name="_header.tmpl">
+
+<a href="<tmpl_var name=device_link>">Back to device info</a>
+    
+<div class="tabber">
+
+    <div class="tabbertab">
+        <h2>Current</h2>
+        <table>
+            <tr>
+                <th valign=top align=left width=220>Configuration backup date: </th>
+                <td><tmpl_var name="curr_config_date"></td>
+            </tr>
+            <tr>
+                <th valign=top align=left>Configuration: </th>
+                <td><pre><tmpl_var name="curr_config"></pre></td>
+            </tr>
+        </table>
+    </div>
+
+    <tmpl_if name=has_prev_config>
+    
+        <div class="tabbertab">
+            <h2>Previous</h2>
+            <table>
+                <tr>
+                    <th valign=top align=left width=220>Configuration backup date: </th>
+                    <td><tmpl_var name="prev_config_date"></td>
+                </tr>
+                <tr>
+                    <th valign=top align=left>Configuration: </th>
+                    <td><pre><tmpl_var name="prev_config"></pre></td>
+                </tr>
+            </table>        
+        </div>
+        
+        <div class="tabbertab">
+            <h2>Diff</h2>
+            <table>
+                <tr>
+                    <td><b>Previous configuration backup:</b></td>
+                    <td><tmpl_var name = prev_config_date> </td>
+                </tr>
+                <tr>
+                    <td><b>Current configuration backup:</b></td>
+                    <td><tmpl_var name = curr_config_date> </td>
+                </tr>
+            </table>
+            <pre>  
+            <tmpl_var name = diff>
+            </pre>
+        </div>
+
+    </tmpl_if>
+
+</div>
+
+<tmpl_include name="_footer.tmpl">

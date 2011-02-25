@@ -1,0 +1,320 @@
+#!/usr/bin/perl -w
+use warnings;
+use strict;
+use Carp;
+#use Carp::REPL;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use File::Temp;
+use File::Spec;
+
+use Archive::Tar;
+use Config::Simple;
+use Getopt::Long;
+use Pod::Usage;
+use Try::Tiny;
+
+use Manoc::DB;
+use Manoc::Utils;
+
+use YAML::Any;
+use Graph::Directed;
+
+my $Disable_fk_opt  = 0;
+my $Sort_tables_opt = 0;
+my $Overwrite_opt   = 0;
+my $Force_opt       = 0;
+my @Include_list    = [];
+my @Exclude_list    = [];
+
+my $Schema;
+
+
+sub dump_table {
+    my ($storage, $dbh, $table, $cols, $filename) = @_;
+
+    my $sth;
+    
+    $sth = $dbh->prepare("SELECT count(*) FROM $table");
+    $sth->execute;
+
+    my $count = $sth->fetch->[0];
+    $sth->finish;
+    ### dumping $table ($count)
+
+    my $cols_list = join(",", @$cols);
+    $sth = $dbh->prepare("SELECT $cols_list FROM $table") or die $dbh->errstr;
+    $sth->execute or die $dbh->errstr;
+
+    my @list;
+    while(my $hash_ref = $sth->fetchrow_hashref) {
+	push @list, $hash_ref;
+    }
+    $sth->finish;
+
+    open my $fh, '>', $filename  or die $!;
+    print $fh Dump(@list);
+    close $fh;
+}
+
+
+sub run_save {
+    my $tar = Archive::Tar->new;
+
+    my $dir = File::Temp::tempdir( CLEANUP => 1 );
+
+    my $source_names = get_source_names();
+
+    foreach my $source_name (@$source_names) {
+	my $source = $Schema->source($source_name);
+	next unless $source->isa('DBIx::Class::ResultSource::Table');
+
+	my $table = $source->from;
+	my @column_names = $source->columns;
+
+	my $filename = File::Spec->catfile($dir, "$table");
+	### dump to file: $filename
+
+	$Schema->storage->dbh_do(
+	    \&dump_table, $table, \@column_names, $filename
+	    );
+
+	$tar->add_files($filename);
+
+	$filename =~ s|^/||;
+	$tar->rename($filename, "$table.yaml");
+    }
+
+    $tar->write('manoc-dump.tar.gz', COMPRESS_GZIP);
+}
+
+########################################################################
+
+sub solve_dependency {
+    my ($source_names) = @_;
+
+    my $g = Graph::Directed->new;
+
+    my @sources;
+    foreach my $source_name (@$source_names) {
+	my $source = $Schema->source($source_name);
+	next unless $source->isa('DBIx::Class::ResultSource::Table');
+
+	$g->add_vertex($source_name);	
+	push @sources, $source;
+    }
+
+    foreach my $source (@sources) {
+	my $source_name = $source->source_name;
+
+	my @rel_names = $source->relationships;
+	foreach my $rel_name (@rel_names) {
+	    print "$rel_name\n";
+	    my $info = $source->relationship_info($rel_name);
+	    next unless $info->{attrs}->{is_foreign_key_constraint};
+	 
+	    my $related = $source->related_source($rel_name)->source_name;
+	    next unless $source_name ne $related;
+	    $g->add_edge($related, $source_name); 
+	}
+    }
+
+    my @ts = $g->topological_sort;
+    return \@ts;
+}
+
+sub load_table {
+    my ($source, $data) = @_;
+    
+    my $rs = $source->resultset;
+
+    $Overwrite_opt and $rs->delete();
+
+    if (@$data == 0) {
+	print STDERR $source->name, " skipping: 0 records\n";
+	return;
+    }
+    print STDERR $source->name, " loading ", scalar(@$data), " records\n";
+
+
+    if ($Force_opt) {
+	foreach my $row (@$data) {
+	    try {
+		$rs->populate([ $row ]);
+	    } 
+	}
+    } else {
+	$rs->populate([ @$data ]);    
+    }
+}
+
+
+sub load_tables_loop {
+    my ($source_names, $tar, $file_set) = @_;
+
+    foreach my $source_name (@$source_names) {
+	my $source = $Schema->source($source_name);
+	next unless $source->isa('DBIx::Class::ResultSource::Table');
+
+	my $table = $source->from;
+	my $filename = "$table.yaml";
+
+	$file_set->{$filename} or next;
+
+	my @data = Load($tar->get_content($filename));
+	#$Schema->storage->dbh_do(
+	#    \&load_table, $table, \@data
+	#    );
+
+	load_table($source, \@data);
+    }   
+}
+
+
+sub run_load {
+    my $tar_filename = shift;
+
+    $tar_filename ||= 'manoc-dump.tar.gz';
+
+    my $tar = Archive::Tar->new($tar_filename);
+
+    my $file_set = { map { $_ => 1 } $tar->list_files };
+  
+    my $source_names  = get_source_names();
+    $Sort_tables_opt and
+	$source_names = solve_dependency($source_names);
+
+    if ($Disable_fk_opt) {
+	print STDERR "Running with disabled fk checks\n";
+
+	# force loading the correct storage backend before 
+	# calling with_deferred_fk_checks
+	$Schema->storage->ensure_connected();
+
+	$Schema->storage->with_deferred_fk_checks(
+	    sub {
+		load_tables_loop($source_names, $tar, $file_set);
+	    });
+    } else {
+	load_tables_loop($source_names, $tar, $file_set);
+    }
+}
+
+
+########################################################################
+
+
+sub get_source_names {
+    my @r;
+
+    @r = @Include_list != 0 ? @Include_list :$Schema->sources;
+
+    if ( @Exclude_list ) {
+
+	my %filter = map { $_ => 1 } @Exclude_list;
+	@r = grep { ! $filter{$_}  } @r;
+    }
+
+    return \@r;
+}
+
+sub main {
+    my $conf_file;
+    my ($help, $man, $load, $save);
+    my @include;
+    my @exclude;
+
+    GetOptions(
+	# "debug"		=> \$Debug,
+	"conf=s"	=> \$conf_file,
+	'help|?'	=> \$help,
+	'man'		=> \$man,
+	'load'          => \$load,
+	'save'          => \$save,
+	'overwrite'     => \$Overwrite_opt,
+	'disable-fk'    => \$Disable_fk_opt,
+	'sort-tables'   => \$Sort_tables_opt,
+	'include=s'     => \@include,
+	'exclude|X=s'   => \@exclude,
+	'force'         => \$Force_opt,
+	) or pod2usage(2);
+    pod2usage(1) if $help;
+    pod2usage(-verbose => 2) if $man;
+    
+    @Include_list = split(/,/,join(',',@include));
+    @Exclude_list = split(/,/,join(',',@exclude));
+
+
+    if ( ($load && $save) ||  (!$load && !$save) ) {
+	pod2usage(2);
+    }
+
+    if (@ARGV != 1) {
+	pod2usage(2);
+    }
+    my $filename = shift @ARGV;
+	
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+    
+    # search config file
+    if (!defined $conf_file) {
+	$conf_file = "/etc/manoc.conf";
+	-f $conf_file or
+	    $conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					     'etc',
+					     'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+    
+    my $conf   = new Config::Simple($conf_file);    
+    my ($dsn, $user, $pass, $opt) = Manoc::Utils::get_dbi_params($conf);
+
+    $Schema = Manoc::DB->connect($dsn, $user, $pass, { AutoCommit => 0 } ) ||
+	die("cannot connect to DB");
+
+    $load and run_load($filename);
+    $save and run_save($filename);
+}
+
+main;
+
+__END__
+
+=head1 NAME
+
+manoc_dump - Smart load/save manoc data
+
+=head1 SYNOPSIS
+
+manoc_dump [OPTIONS] (--load|--save) DUMPFILE
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--conf=PATH>
+	
+=item B<--overwrite>
+
+Erase all data before inserting.
+
+=item B<--disable-fk>
+
+Disable foreign key checks while inserting.
+
+=item B<--sort-table>
+
+Sort tables using foreign key constraints.
+
+=item B<--force>
+
+Ignore errors. Data is crap!
+
+=item B<--help|?>
+
+=item B<--man>
+
+=back

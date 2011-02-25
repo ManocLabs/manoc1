@@ -1,0 +1,148 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Getopt::Long;
+
+use File::Spec;
+use Config::Simple;
+use Manoc::DB;
+use Manoc::Utils;
+
+use GraphViz;
+
+my ($Schema, $Conf);
+
+sub draw_racks {
+      my $g = GraphViz->new(directed => 0,
+			    layout   => 'fdp',
+			    overlap  => 'false',
+			    epsilon  => 0.0001,
+			    );
+      
+      my %in_rack;
+      my $rs;
+
+      $rs = $Schema->resultset('Rack')->search(undef, 
+					       { order_by => ['building']});
+
+      my %cluster;
+      while(my $r = $rs->next) {
+	  my @devices = $r->devices();
+	  foreach my $d (@devices) {
+	      $in_rack{$d->id} = $d->rack->id;
+	  }
+	  
+	  my $cluster = $cluster{$r->building->id};
+	  if (! $cluster) {
+	      $cluster = {
+			   name		=> $r->building->id . " " . $r->building->description,
+			   fontname 	=> 'arial',
+			   fontsize  	=> '12',			   
+		       };	      
+	       $cluster{$r->building->id} = $cluster;
+	  }
+	  my $node_color = 'white';
+	  foreach (@devices) {
+	      $_->name =~ /^sito/i and $node_color = 'red', last; 
+	  }
+	  $g->add_node(
+		       $r->id,
+		       cluster => $cluster,
+		       label   => join('\n', map { $_->name } @devices),
+		       style   => 'filled',
+		       fillcolor => $node_color
+		       );
+      }
+
+      my %rack_link;
+      my $last_ts = $Schema->resultset('CDPNeigh')->get_column('last_seen')->max;
+      $rs = $Schema->resultset('CDPNeigh')->search({last_seen => $last_ts});
+     
+
+      while( my $link = $rs->next) {
+	  my $from_rack = $in_rack{$link->from_device};
+	  my $to_rack   = $in_rack{$link->to_device};
+
+	  defined($to_rack) or next;
+
+	  $to_rack == $from_rack and next;
+
+
+	  $rack_link{"$to_rack-$from_rack"} and next;
+	  $rack_link{"$from_rack-$to_rack"} = 1; 
+
+	  $g->add_edge($from_rack => $to_rack);
+      }
+
+      print $g->as_png;
+}
+
+sub draw_devices {
+    my $last_ts = $Schema->resultset('CDPNeigh')->get_column('last_seen')->max;
+
+
+    my $g = GraphViz->new(directed => 0,
+			  layout   => 'twopi',
+			  overlap  => 'false',
+			  solve    => 0.001);
+
+    
+    my %node;
+    my %edge;
+    my $rs = $Schema->resultset('CDPNeigh')->search({last_seen => $last_ts});
+    while( my $link = $rs->next) {
+	my $from = $link->from_device;
+	my $to   = $link->to_device;
+
+	if ($edge{"$to-$from" || $edge{"$from-$to"}}) {
+	    next;
+	}
+	$edge{"$from-$to"} = 1;
+
+	if(! defined $node{$from}) {
+	    $node{$from} = 1;
+	    $g->add_node($from);
+	}
+	if(! defined $node{$to}) {
+	    $node{$to} = 1;
+	    $g->add_node($to);
+	}
+	
+	$g->add_edge($from => $to);
+    }
+
+    print $g->as_png;
+}
+
+sub main {
+    my ($help, $man, $conf_file);
+
+    GetOptions(
+		'conf=s'	=> \$conf_file,
+		'help|?'	=> \$help,
+		'man'		=> \$man,
+	) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    if (!defined $conf_file) {
+	$conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					 'etc',
+					 'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+
+    $Conf = new Config::Simple($conf_file);
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf));
+
+    draw_racks;
+}
+
+
+main;

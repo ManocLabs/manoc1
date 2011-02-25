@@ -1,0 +1,158 @@
+<tmpl_include name="_header.tmpl">
+
+<div class="tabber">
+
+<tmpl_loop name="arp_results">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>MAC Address Associations</h2>
+    <table>
+       <tr>
+	 <th>Mac Address</th>
+	 <th>Vlan</th>
+	 <th>From</th>
+	 <th>To</th>
+       </tr>
+  </tmpl_if>
+       <tr class="results">
+	  <td class="macaddr"><manoc_link mac id=macaddr></td>
+	  <td><manoc_link vlan id=vlan></td>
+	  <td class="date"><tmpl_var name="firstseen"></td>
+	  <td class="date"><tmpl_var name="lastseen"></td>
+       </tr>
+  <tmpl_if name="__last__">
+	</table>
+        </div>
+  </tmpl_if>
+</tmpl_loop>
+
+
+<tmpl_loop name="reservations">
+<tmpl_if name="__first__">
+  <div class="tabbertab">
+  <h2>DHCP Reservations</h2>
+    <table>
+      <tr>
+	<th>Server</th>
+	<th>Mac Address</th>
+	<th>Name</th>
+	<th>Hostname</th>
+      </tr>
+</tmpl_if>
+      <tr class="results">
+        <td><tmpl_var name="server"></td>
+        <td class="macaddr"><manoc_link mac id=macaddr></td>
+        <td><tmpl_var name="name"></td>
+        <td><tmpl_var name="hostname"></td>
+     </tr>
+<tmpl_if name="__last__">
+   </table>
+   </div>
+</tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="leases">
+<tmpl_if name="__first__">
+ <div class="tabbertab">
+  <h2>DHCP Leases</h2>
+  <table>
+    <tr>
+      <th>Server</th>
+      <th>Mac Address</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Status</th>
+      <th>Hostname</th>
+    </tr>
+</tmpl_if>
+    <tr class="results">
+       <td><tmpl_var name="server"></td>
+       <td class="macaddr"><manoc_link mac id=macaddr></td>
+       <td class="date"><tmpl_var name="start"></td>
+       <td class="date"><tmpl_var name="end"></td>
+       <td><tmpl_var name="status"></td>
+       <td><tmpl_var name="hostname"></td>
+   </tr>
+<tmpl_if name="__last__">
+  </table>
+</div>
+</tmpl_if>
+</tmpl_loop>
+
+<div class="tabbertab">
+<h2>Subnet</h2>
+<table>
+	<tmpl_loop name="subnet">    
+	<tmpl_if name="__first__">
+		<tr>
+			<th>Subnet Name</th>
+			<th>From</th>
+			<th>To</th>
+	       </tr>
+	</tmpl_if>
+		<tr class="results">
+			<td><manoc_link subnet id="subnet_name"></td>
+			<td><tmpl_var name="from_addr"></td>
+			<td><tmpl_var name="to_addr"></td>
+		</tr>
+	</tmpl_loop>
+</table>
+</div>
+
+<tmpl_loop name=hostnames>
+  <tmpl_if name="__first__">
+     <div class="tabbertab">
+     <h2>AD Hostname</h2>
+     <table>
+	<tr>
+  	   <th>Name</th>
+  	   <th>From</th>
+           <th>To</th>
+        </tr>
+  </tmpl_if>
+	<tr class="results">
+	<td><tmpl_var name="name"></td>
+  	<td class="date"><tmpl_var name="firstseen"></td>
+  	<td class="date"><tmpl_var name="lastseen"></td>
+	</tr>
+ <tmpl_if name="__last__">
+	</table>
+        </div>
+  </tmpl_if>
+</tmpl_loop>
+
+
+<tmpl_loop name=logons>
+   <tmpl_if name="__first__">
+      <div class="tabbertab">
+         <h2>AD Logons</h2>
+         <table>
+      	    <tr>
+	       <th>Name</th>
+	       <th>From</th>
+	       <th>To</th>
+	    </tr>
+   </tmpl_if>
+         <tr class="results">
+ 	 <td><tmpl_var name="user"></td>
+         <td class="date"><tmpl_var name="firstseen"></td>
+         <td class="date"><tmpl_var name="lastseen"></td>
+         </tr>
+ <tmpl_if name="__last__">
+	</table>
+        </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<div class="tabbertab">
+  <h2>Notes</h2>
+  <tmpl_var name=notes>
+  <br><br>
+  <span class="button"><a href="<tmpl_var name=edit_url>"><manoc_icon edit>Edit</a></span>
+  <tmpl_if name=notes>
+    <span class="button"><a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"><manoc_icon remove>Delete</a></span>
+  </tmpl_if>
+</div>
+
+<tmpl_include name="_footer.tmpl">
+

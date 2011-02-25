@@ -1,0 +1,43 @@
+<tmpl_include name="_header.tmpl">
+    <table>
+        <manoc_bar link=new_vlanrange_url colspan=6 text="Add Vlan Range"/>
+        <th align='left' width=150 colspan=2>Vlan Range</th>
+        <th align='center' width=120>Start</th>
+        <th align='center' width=120>End</th>
+        <th align='left' width=280>Description</th>
+        <th align='center' width=100>Commands</th>
+        <tmpl_loop name="ranges">
+            <tr height=35 valign=bottom>
+                <th align='left' colspan=2>+ <manoc_link vlanrange id=id name=name></th>
+                <th align='center'><tmpl_var name="start"></th>
+                <th align='center'><tmpl_var name="end"></th>
+                <td align='left'><tmpl_var name="description"></td>
+                <td align='right'>
+                    <a href="<tmpl_var name=add_vlan_url>"> <manoc_icon add> </a>
+                    <a href="<tmpl_var name=edit_url>"> <manoc_icon edit> </a>
+                    <a href="<tmpl_var name=split_url>"> <manoc_icon split> </a>
+                    <tmpl_if name="n_neighs">
+                        <a href="<tmpl_var name=merge_url>"> <manoc_icon merge> </a>
+                    <tmpl_else>
+                        <manoc_icon merge_white>
+                    </tmpl_if>
+                    <a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"> <manoc_icon remove> </a>
+                </td>
+            </tr>
+            <tmpl_loop name="vlans">
+                <tr>
+                    <td width=40 align=right>-</td>
+                    <td><manoc_link vlan id=id> (<tmpl_var name=name>)</td>
+                    <td></td><td></td>
+                    <td><tmpl_var name=description></td>
+                    <td align=right>
+                        <a href="<tmpl_var name=edit_url>"> <manoc_icon edit> </a>
+                        <a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"> <manoc_icon remove> </a>
+                    </td>
+                </tr>
+            </tmpl_loop>
+        </tmpl_loop>
+        <manoc_bar link=new_vlanrange_url colspan=6 text="Add Vlan Range"/>
+    </table>
+
+<tmpl_include name="_footer.tmpl">

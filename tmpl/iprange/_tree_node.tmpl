@@ -1,0 +1,6 @@
+<tmpl_var name="root"> 
+<tmpl_loop name=children>
+<tmpl_if name="__first__"><ul></tmpl_if>
+<li><tmpl_var name="node"></li>
+<tmpl_if name="__last__"></ul></tmpl_if>
+</tmpl_loop>

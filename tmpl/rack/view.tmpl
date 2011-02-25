@@ -1,0 +1,58 @@
+<tmpl_include name="_header.tmpl">
+
+
+<div class="tabber">
+
+<div class="tabbertab">
+<h2>Info</h2>
+<table>
+<tr>
+  <td>Name:</td><td><tmpl_var name="name"></td>
+</tr>
+<tr>
+  <td>Building:</td>
+  <td><manoc_link building id=building_id name=building_name> 
+    <tmpl_var escape=html name="building_descr">
+  </td>
+<tr>
+  <td>Floor:</td><td><tmpl_var name="floor"></td>
+</tr>
+</tr>
+<tr>
+  <td>Notes:</td><td><tmpl_var escape=html name="notes"></td>
+</tr>
+</table>
+
+<p>
+<span class="button"><a href="<tmpl_var name=edit_link>"><manoc_icon edit>Edit</a></span>
+&nbsp;<span class="button"><a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_link>"><manoc_icon remove>Delete</a></span>
+&nbsp;<span class="button"><a href="<tmpl_var name=add_link>">Add Device</a></span>
+</p>
+
+</div>
+
+<tmpl_loop name=devices>
+  <tmpl_if name=__first__>
+    <div class="tabbertab">
+    <h2>Devices</h2>
+    <table>
+       <tr>
+	 <th>Level</th>
+	 <th>Name</th>
+	 <th>Address</th>
+	 <th></th>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td><tmpl_var name=level></td>
+	  <td><tmpl_var escape=html  name=name></td>
+	  <td><manoc_link device id=address></td>
+	  <td><span class="button"><a href="<tmpl_var name=edit_link>">Edit</a></span></td>
+       </tr>
+  <tmpl_if name=_last__>
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_include name="_footer.tmpl">

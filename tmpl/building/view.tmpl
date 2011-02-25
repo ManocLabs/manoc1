@@ -1,0 +1,44 @@
+<tmpl_include name="_header.tmpl">
+
+<div class="tabber">
+
+<div class="tabbertab">
+<h2>General</h2>
+<table>
+<tr>
+  <td>Name:</td><td><tmpl_var name="name"></td>
+</tr>
+<tr>
+  <td>Description:</td><td><tmpl_var escape=html name="description"></td>
+</tr>
+<tr>
+  <td>Notes:</td><td><tmpl_var escape=html name="notes"></td>
+</tr>
+</table>
+
+<p>
+<span class="button"><a href="<tmpl_var name=edit_link>"><manoc_icon edit>Edit</a></span>
+&nbsp;<span class="button" onClick="javascript:return confirmDelete();"><a href="<tmpl_var name=delete_link>"><manoc_icon remove>Delete</a></span>
+</p>
+</div>
+
+<div class="tabbertab">
+<h2>Racks</h2>
+  <table>
+    <tr><th>Floor</th><th>Racks</th></tr>
+<tmpl_loop name="racks">
+     <tr>
+       <td><tmpl_var name="floor"></td>	  
+       <td> 
+         <tmpl_loop name="list">
+	   <manoc_link rack id=id name=name><tmpl_if name=__last__><tmpl_else>,</tmpl_if>
+	 </tmpl_loop>
+       </td>
+    </tr>
+</tmpl_loop>
+</table>
+<p><span class="button"><a href="<tmpl_var name=add_link>">Add Rack</a></span></p>
+</div>
+
+
+<tmpl_include name="_footer.tmpl">

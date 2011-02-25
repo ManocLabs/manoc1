@@ -1,0 +1,38 @@
+<table>
+    <tmpl_loop name=ranges>
+        <tmpl_if name="__first__">
+            <tr align=left>
+                <th>Name</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Vlan</th>
+                <th align=center>Commands</th>
+            </tr>
+        </tmpl_if>
+        <tr align=left>
+            <td><a href="<tmpl_var name=view_url>"><tmpl_var name=name></a></td>
+            <td><tmpl_var name=from>&nbsp;</td>
+            <td><tmpl_var name=to></td>
+            <td><tmpl_if name=vlan_id><manoc_link vlan id=vlan_id name=vlan><tmpl_else> - </tmpl_if></td>
+            <td class="buttons">
+            <a href="<tmpl_var name=edit_url>"><manoc_icon edit></a>
+            <tmpl_if name=n_children>
+                <manoc_icon split_white>
+            <tmpl_else>
+                <a href="<tmpl_var name=split_url>"><manoc_icon split></a>
+            </tmpl_if>
+	    <tmpl_if name=n_neigh>
+                <a href="<tmpl_var name=merge_url>"><manoc_icon merge></a>		
+            <tmpl_else>
+                <manoc_icon merge_white>
+            </tmpl_if>
+            <tmpl_if name=n_children>
+                <manoc_icon remove_white>
+            <tmpl_else>
+                <a onClick="javascript:return confirmDelete();"  href="<tmpl_var name=delete_url>"><manoc_icon remove></a>
+            </tmpl_if>
+		
+            </td>
+        </tr>
+    </tmpl_loop>
+</table>

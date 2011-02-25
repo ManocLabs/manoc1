@@ -1,0 +1,10 @@
+#!/bin/sh
+
+BASE_DIR=/home/manoc/production
+LOG=$BASE_DIR/log/cron.log
+
+echo >> $LOG
+date >> $LOG
+perl $BASE_DIR/bin/manoc_netwalker >>$LOG 2>&1
+perl $BASE_DIR/bin/manoc_archiver  >>$LOG 2>&1
+perl $BASE_DIR/bin/manoc_backup >>$LOG 2>&1

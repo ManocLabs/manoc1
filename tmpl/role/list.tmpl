@@ -1,0 +1,20 @@
+<tmpl_include name="_header.tmpl">
+
+    <table>
+        <manoc_bar link=new_role_url colspan=3 text="Add Role"/>
+        <th align='left' width=200>Role</th>
+        <th align='center' width=150>Users</th>
+        <th align='center' width=150>Commands</th>
+        <tmpl_loop name="roles">
+            <tr align='left'>
+                <td><tmpl_var name="role"></td>
+                <td align='center'><a href="<tmpl_var name=user_url>">  <tmpl_var name="num_users"> </a></td>
+                <td align='center'><a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"> <manoc_icon remove> </a></td>
+            </tr>
+        </tmpl_loop>
+        <manoc_bar link=new_role_url colspan=3 text="Add Role"/>
+    </table>
+    <br>
+    <a href=<tmpl_var name=user_url>> Go to Users section </a>
+
+<tmpl_include name="_footer.tmpl">

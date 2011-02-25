@@ -1,0 +1,238 @@
+#!/usr/bin/perl
+# Copyright 2011 by the Manoc Team
+#
+# This library is free software. You can redistribute it and/or modify
+# it under the same terms as Perl itself.
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use local::lib "$FindBin::Bin/../support";
+
+use POSIX qw(setsid);
+
+use Getopt::Long;
+use Pod::Usage;
+
+use File::Spec; 
+use Net::Pcap;
+use NetPacket::Ethernet qw(:types);
+use NetPacket::ARP;
+
+use Config::Simple;
+use Manoc::DB;
+use Manoc::Utils;
+
+my $Pcap;
+my $Logger;
+
+my $Conf;
+my $Vlan;	  # default VLAN
+my %Vlan_Filter;  # a set of vlan to ignore
+my $Refresh_Interval;
+my $Schema;
+
+# indexed by $ipaddr@$vlan string
+my %ArpTable;
+my %LastSeen;
+
+
+########################################################################
+#                                                                      #
+#                          Server stuff                                #
+#                                                                      #
+########################################################################
+
+
+sub daemonize {
+    open STDOUT, ">/dev/null";
+    open STDERR, ">&STDOUT" 
+	or $Logger->logdie("Couldn't redirect STDERR to STDOUT: $!\n");
+    open STDIN,  '/dev/null' 
+	or $Logger->logdie("Can't read /dev/null: $!");
+
+    chdir('/')
+	or $Logger->logconfess("Can't chdir to /: $!");
+    umask 0;
+
+    # Double-fork to avoid leaving a zombie process behind:
+    exit if (fork());
+    exit if (fork());
+    sleep 1 until getppid() == 1;
+    setsid();
+
+    $Logger->warn("started");
+}
+
+sub pcap_init {
+    my $err;
+    my $dev = $Conf->param('arpsniffer.device');
+
+    if (! defined($dev)) {
+	$dev = Net::Pcap::lookupdev(\$err);
+	if (defined $err) {
+	    $Logger->logdie('Unable to determine network device for monitoring - ', $err);
+	}
+    }
+
+    $Pcap = Net::Pcap::open_live($dev, 1500, 1, 0, \$err);
+    unless (defined $Pcap) {
+	$Logger->logdie("Unable to create packet capture on device $dev - $err");
+    }
+
+    $Logger->info("listening on $dev");
+
+    my $filter_str = '(arp and not src host 0.0.0.0) || (vlan and arp and not src host 0.0.0.0)';
+    my $filter;
+
+    Net::Pcap::compile($Pcap, \$filter, $filter_str, 0, 0) && 
+	die 'Unable to compile packet capture filter';
+    Net::Pcap::setfilter($Pcap, $filter) &&
+	die 'Unable to set packet capture filter';    
+}
+
+sub leave {
+    $Logger->warn("leave: closing pcap");
+    Net::Pcap::close($Pcap);
+    $Logger->warn("leave: done");
+    exit;
+}
+
+sub arp_packets {
+    my ($user_data, $header, $packet) = @_;
+
+    my $eth  = NetPacket::Ethernet->decode($packet);
+
+    my $type = $eth->{type};
+    my $data = $eth->{data};
+    my $vlan;
+
+    if ($type == 0x8100) {
+	my $tci;
+	($tci, $type, $data) = unpack('nna*', $data);
+	$vlan = $tci & 0x0fff;
+    }  else {
+	$vlan = $Vlan;
+    }
+
+    # check packet type
+    return unless $type == ETH_TYPE_ARP();
+
+    # use vlan filter
+    return if $Vlan_Filter{$vlan};
+
+    my $arp = NetPacket::ARP->decode($data, $eth);
+    my $mac_addr = join(":", unpack("(A2)*", $arp->{sha}));
+    my $ip_addr  = join(".", unpack("C4", pack("H*", $arp->{spa})));
+
+    my $timestamp = time();
+
+    my $key = $ip_addr . '@' . $vlan;
+
+    return if ( exists($ArpTable{$key}) && 
+		$ArpTable{$key} eq $mac_addr &&
+		$timestamp - $LastSeen{$key} < $Refresh_Interval
+		) ;
+    
+    $ArpTable{$key} = $mac_addr;
+    $LastSeen{$key} = $timestamp;
+
+    my @entries = $Schema->resultset('Arp')->search({
+							ipaddr	 => $ip_addr,
+							macaddr	 => $mac_addr,
+							vlan	 => $vlan,
+							archived => 0,
+							});
+
+    scalar(@entries) > 1 and
+	$Logger->error("More than one non archived entry for $ip_addr,$mac_addr");
+    if (@entries) {
+	my $entry = $entries[0];	
+	$entry->lastseen($timestamp);
+	$entry->update();
+    } else {
+	$Schema->resultset('Arp')->create({
+	    ipaddr    => $ip_addr,
+	    macaddr   => $mac_addr,
+	    firstseen => $timestamp,
+	    lastseen  => $timestamp,
+	    vlan      => $vlan,
+	    archived  => 0
+	    });
+      }
+}
+
+sub main {
+    my ($help, $man, $conf_file, $daemonize);
+
+    GetOptions(
+		'daemon'	=> \$daemonize,
+		'conf=s'	=> \$conf_file,
+		'help|?'	=> \$help,
+		'man'		=> \$man,
+	) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    if (!defined $conf_file) {
+	$conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(), 
+					 'etc',  
+					 'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+
+    $Conf   = new Config::Simple($conf_file);
+    $Logger = Manoc::Utils::init_log(
+				     conf	=> $Conf, 
+				     name	=> 'arpsniffer.log'
+				     ) || die "Cannot init logger";
+
+    $Refresh_Interval = $Conf->param('arpsniffer.refresh_interval') || 600;
+    $Logger->info("refresh interval is $Refresh_Interval");
+    $Vlan = $Conf->param('arpsniffer.vlan') || 1;
+
+    # init filtered vlan set
+    my $filter = $Conf->param('arpsniffer.vlan_filter');
+    if ($filter) {
+
+	my @filter;
+	if (ref($filter) eq 'ARRAY') {
+	    @filter = @$filter;
+	} else {
+	    push @filter, $filter;
+	}
+
+	foreach my $vlan (@filter) {
+
+	    # syntax check
+	    $vlan =~ m/^\d+$/o or
+		$Logger->logdie("Bad vlan '$vlan' in option vlan_filter.");
+
+	    $Vlan_Filter{$vlan} = 1;
+	}
+
+    }
+
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf)) ||
+	$Logger->logconfess("cannot connect to DB");
+
+    $SIG{HUP}  = \&update_conf;
+    $SIG{KILL} = \&leave;
+    $SIG{QUIT} = \&leave;
+    $SIG{INT}  = \&leave;
+    $daemonize and daemonize();
+
+    pcap_init();
+    
+    # Set callback function and initiate packet capture loop
+    Net::Pcap::loop($Pcap, -1, \&arp_packets, '') ||
+	$Logger->logconfess('Unable to perform packet capture');
+
+    exit 0;
+}
+
+
+main;

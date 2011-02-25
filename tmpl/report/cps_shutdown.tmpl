@@ -1,0 +1,22 @@
+<tmpl_include name="_header.tmpl">
+
+<table>
+       <tr>
+	 <th colspan="2">Device</th>
+	 <th>Interface</th>
+	 <th>Description</th>
+	 <th>Violations</th>
+       </tr>
+<tmpl_loop name="table">
+       <tr class=results>
+	  <td><manoc_link device id=device></td>
+	  <td><tmpl_var name="device_name"></td>
+	  <td><manoc_link iface device=device iface=interface short></td>
+	  <td><tmpl_var name="description"></td>
+	  <td class="numeric"><tmpl_var name="cps_count"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+
+<tmpl_include name="_footer.tmpl">

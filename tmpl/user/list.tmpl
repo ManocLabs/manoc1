@@ -1,0 +1,38 @@
+<tmpl_include name="_header.tmpl">
+
+    <tmpl_if name=message></tmpl_if>
+    <table>
+        <manoc_bar link=new_user_url colspan=6 text="Add User"/>
+        <th align='left' width=130>Login</th>
+        <th align='left' width=150>Full name</th>
+        <th align='left' width=150>Email</th>
+        <th align='left' width=140>Roles</th>
+        <th align='center' width=80>Active</th>
+        <th align='center' width=100>Commands</th>
+        <tmpl_loop name="users">
+            <tr align='left'>
+                <td><a href="<tmpl_var name=view_url>"> <tmpl_var name="login"> </a></td>
+                <td><tmpl_var name="full_name"></td>
+                <td><tmpl_var name="email"></td>
+                <td><a href="<tmpl_var name=role_url>"> <tmpl_var name="roles"> </a></td>
+                <td align='center'>
+                    <tmpl_if name=auto_edit>
+                        <tmpl_if name="active"><manoc_icon ok_white>
+                        <tmpl_else> <manoc_icon no_white> </tmpl_if>
+                    <tmpl_else>
+                        <tmpl_if name="active"><a href="<tmpl_var name=switch_stat_url>"> <manoc_icon ok> </a>
+                        <tmpl_else> <a href="<tmpl_var name=switch_stat_url>"> <manoc_icon no> </a> </tmpl_if>
+                    </tmpl_if>
+                </td>
+                <td align='center'>
+                    <a href="<tmpl_var name=edit_url>"> <manoc_icon edit> </a>
+                    <tmpl_if name=auto_edit> <manoc_icon remove_white>
+                    <tmpl_else> <a onClick="javascript:return confirmDelete();" href="<tmpl_var name=delete_url>"> <manoc_icon remove> </a> </tmpl_if>
+                </td>
+            </tr>
+        </tmpl_loop>
+        <manoc_bar link=new_user_url colspan=6 text="Add User"/>
+    </table>
+    <br>
+    <a href=<tmpl_var name=role_url>> Go to Roles section </a>
+<tmpl_include name="_footer.tmpl">

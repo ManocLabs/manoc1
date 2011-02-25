@@ -1,0 +1,37 @@
+[general]
+
+[db]
+#source = sqlite
+source = DBI:mysql:database=manoc;host=localhost
+user = "manoc"
+auth = "manoc123"
+
+[password]
+snmp = Mon1tor1ZZ4
+telnet = boh
+enable = riboh
+
+[cgi]
+# without trailing slash!
+app_path = manoc
+
+[netwalker]
+# 0 to disable
+ifstatus_interval = 3600
+iface_filter = 1
+check_db = 1
+#require check_db
+update_device_db = 1 
+native_vlan = 1
+
+[archiver]
+archive_age = 86400
+delete_age = 86400
+
+[arpsniffer]
+#native vlan
+vlan = 1
+refresh_interval = 600
+
+[backup]
+interval = 1d

@@ -1,0 +1,30 @@
+<tmpl_include name="_header.tmpl">
+
+    <form name="form1" method="POST">
+        <input type="hidden" name="forced_range_id" value="<tmpl_var name=forced_range_id>" />
+        <input type="hidden" name="origin" value="<tmpl_var name=origin>" />
+        <table>
+            <tmpl_if name=edit_enable>
+                <input type="hidden" name="id" value="<tmpl_var name=id>" />
+            <tmpl_else>
+                <tr>
+                    <td>Id: </td>
+                    <td><input type="text" value="<tmpl_var name=id>" name="id"></input></td>
+                </tr>
+            </tmpl_if>
+            <tr>
+                <td>Name: </td>
+                <td><input type="text" value="<tmpl_var name=name>" name="name"></input></td>
+            </tr>
+            <tr>
+                <td>Description: </td>
+                <td><textarea cols="40" rows="6" name="description"><tmpl_var name=description></textarea></input></td>
+            </tr>
+            <tr>
+                <td align=center colspan=2><input type="submit" name="submit" value="submit"></td>
+            </tr>
+        </table>
+    </form>
+    <br>
+
+<tmpl_include name="_footer.tmpl">

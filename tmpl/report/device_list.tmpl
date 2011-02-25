@@ -1,0 +1,32 @@
+<tmpl_include name="_header.tmpl">
+
+<table>
+  <tr>
+     <th>Building</th>
+     <th>Rack</th>
+     <th>Floor</th>
+     <th>IP Address</th>
+     <th>Name</th>
+     <th>Vendor</th>
+     <th>Model</th>
+     <th>OS</th>
+  </tr>
+<tmpl_loop name="table">
+       <tr class=results>
+	  <td><tmpl_var name="building"></td>
+	  <td class="numeric"><tmpl_var name="rack"></td>
+	  <td class="numeric"><tmpl_var name="floor"></td>
+	  <td><tmpl_var name="ipaddr"></td>
+	  <td><tmpl_var name="name"></td>
+	  <td><tmpl_var name="vendor"></td>
+	  <td><tmpl_var name="model"></td>
+	  <td><tmpl_var name="os"></td>
+       </tr>
+</tmpl_loop>
+</table>
+
+
+
+
+
+<tmpl_include name="_footer.tmpl">

@@ -1,0 +1,75 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Manoc::DB;
+use Manoc::Utils;
+use Config::Simple;
+use Getopt::Long;
+use Pod::Usage;
+use Digest::MD5;
+use Carp;
+
+my $conf_file;
+my ($help, $man);
+
+GetOptions(
+	   # "debug"		=> \$Debug,
+	   "conf=s"	=> \$conf_file,
+	   'help|?'	=> \$help,
+	   'man'		=> \$man,
+	   ) or pod2usage(2);
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+# search config file
+if (!defined $conf_file) {
+    $conf_file = "/etc/manoc.conf";
+    -f $conf_file or
+	$conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					 'etc',
+					 'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+}
+
+my $conf   = new Config::Simple($conf_file);
+my $schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($conf)) ||
+    die("fetch_oui: cannot connect to DB");
+
+print "Enter admin password: ";
+my $password = <>;
+chomp $password;
+
+my $admin = $schema->resultset('User')->find_or_create({ login => 'admin' });
+$admin || die "Cannot modify user admin";
+$admin->password(Digest::MD5::md5_base64($password));
+$admin->active(1);
+$admin->update() || die "Cannot modify user admin";
+print "Password resetted.\n";
+
+my $admin_role = $schema->resultset('Role')->find({role => 'admin'});
+if (!$admin_role) {
+    $admin_role = 
+	$schema->resultset('Role')->create({ role => 'admin' });
+    $admin_role || die "Cannot create admin_role";
+    print "Created admin role\n";
+}
+
+print "Admin roles: ";
+print join (",", map { $_->role } $admin->roles);
+print "\n";
+if ($admin->roles->find({ role => 'admin' })) {
+    print "Admin user has already admin role.\n";
+} else {
+    $admin->add_to_roles($admin_role) || 
+	die "Cannot add admin role to admin";
+    print "Added admin role to admin user.\n";
+}
+
+print "Done.\n";
+exit 0;

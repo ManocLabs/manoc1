@@ -1,0 +1,98 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use local::lib "$FindBin::Bin/../support";
+
+use Manoc::DB;
+use Manoc::Utils;
+use Config::Simple;
+use Getopt::Long;
+use Pod::Usage;
+use LWP::UserAgent;
+
+use Carp;
+
+my $Conf;
+my $Logger;
+my $Schema;
+my $Debug;
+my $Url = "http://standards.ieee.org/regauth/oui/oui.txt";
+
+sub main {
+    my $conf_file;
+    my ($help, $man, $url);
+
+    GetOptions(
+	        "url=s"		=> \$url,
+		"debug"		=> \$Debug,
+		"conf=s"	=> \$conf_file,
+		'help|?'	=> \$help,
+		'man'		=> \$man,
+		) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    # search config file
+    if (!defined $conf_file) {
+	$conf_file = "/etc/manoc.conf";
+	-f $conf_file or
+	  $conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					   'etc',
+					   'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+    $Debug and print  "Reading conf from $conf_file\n";
+    $Conf   = new Config::Simple($conf_file);
+
+    # start logger and db
+    $Logger = Manoc::Utils::init_log(
+				     conf 	=> $Conf, 
+				     name 	=> 'manoc.log',
+				     debug	=> $Debug
+				     ) || die "Cannot init logger";
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf)) ||
+	$Logger->logconfess("fetch_oui: cannot connect to DB");
+
+
+    #--- start test code ---
+    
+    my $ua = LWP::UserAgent->new;
+    $ua->timeout(10);
+    $ua->env_proxy;
+    
+    $Logger->debug("Reading oid from $Url\n");
+    my $response = $ua->get($Url);
+    
+    
+    if ($response->is_success) {	
+	my $content = $response->content;
+
+	my $rs = $Schema->resultset('Oui');
+
+	$rs->delete_all;
+	while( $content =~ /([a-fA-F0-9-]{8})\s+\(hex\)\s+(.*)$/gm) {
+	    my $prefix = lc($1);	    
+	    my $vendor = $2;
+
+	    $prefix =~ y/-/:/;
+
+	    $rs->update_or_create({
+		prefix => $prefix,
+		vendor => $vendor
+		});
+	}
+	$Logger->info("fetch_oui: Done"); 	
+    } else {
+	my $status = $response->status_line;
+	$Logger->logconfess("fetch_oui: Cannot fetch oui: $status"); 	
+    }
+        
+    exit 0;
+}
+
+main;

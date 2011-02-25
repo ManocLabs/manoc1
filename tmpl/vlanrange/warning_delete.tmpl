@@ -1,0 +1,14 @@
+<tmpl_include name="_header.tmpl">
+
+Impossible delete vlan range, following vlans belong to this vlan range:
+
+<tmpl_loop name=vlans>
+    <manoc_link vlan id=id name=name>
+    <tmpl_unless name=__last__>&#44;&nbsp;</tmpl_unless>
+</tmpl_loop>
+
+<br><br>
+
+<a href="<tmpl_var name=vlanrange_url>"> Back to the vlan range list </a>
+
+<tmpl_include name="_footer.tmpl">

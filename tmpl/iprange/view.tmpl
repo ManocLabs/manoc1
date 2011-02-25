@@ -1,0 +1,103 @@
+<tmpl_include name=_header.tmpl>
+
+<div class="tabber">
+<div class="tabbertab">
+<h2>Info</h2>
+<table>
+    <tr align="left">
+        <tmpl_if name=name>
+        <th>Name:</th>
+        <td><tmpl_var name=name></td>
+        <tmpl_else>
+	<th>Host:</th>
+        <td><manoc_link ip id=host> </td>
+        </tmpl_if>
+    </tr>
+    <tmpl_if name=description>
+    <tr align="left">
+        <th>Description:</th>
+        <td><tmpl_var name=description></td>
+    </tr>
+    </tmpl_if>
+     
+    <tmpl_if name=netmask> 
+    <tr align="left">
+            <th>Network:</th>
+            <td><tmpl_var name=network>/<tmpl_var name=prefix></td>
+    </tr>
+    <tr align="left">
+            <th>Netmask:</th>
+            <td><tmpl_var name=netmask></td>
+     </tr>
+     <tr align="left">
+            <th>Wildcard:</th>
+            <td><tmpl_var name=wildcard></td>
+     </tr>
+     </tmpl_if>
+
+     <tr align="left">
+            <th>MinHost-MaxHost:</th>
+            <td><tmpl_var name=min_host> - <tmpl_var name=max_host></td>
+     </tr>
+     <tmpl_if name=name>
+    <tr align="left">
+        <th>Parent Range:</th>
+        <td>
+            <tmpl_if name=parent_link>
+                <a href=<tmpl_var name=parent_link>> <tmpl_var name="parent"> </a>
+            <tmpl_else> 
+                none
+            </tmpl_if>
+        </td>
+    </tr>
+    <tr align="left">
+        <th>Vlan: </th>
+        <td>
+            <tmpl_if name=vlan_id>
+                <manoc_link vlan id=vlan_id name=vlan>
+            <tmpl_else> 
+                none
+            </tmpl_if>
+        </td>
+    </tr>
+      <tmpl_else> 
+       <tr align="left">
+          <th>Number of hosts:</th>
+          <td><tmpl_var name=numhost></td>
+       </tr>
+    </tmpl_if>
+    <tr align="left">
+    	<th>Used IP Addresses:</th>
+        <td><tmpl_var name=ipaddr_num></td>
+    </tr>
+       </table>
+
+<tmpl_if name=edit_url>
+<br>
+<span class="button"><a href="<tmpl_var name=edit_url>"><manoc_icon edit>Edit</a></span>
+<span class="button"><a onClick="javascript:return confirmDelete();" href="<tmpl_var name=remove_url>"><manoc_icon remove>Delete</a></span>
+</tmpl_if>
+
+</div>
+
+<tmpl_if name=rangelist_widget>
+<div class="tabbertab">
+<h2>Subranges</h2>
+<tmpl_var name=rangelist_widget>
+<span class="button"><a href="<tmpl_var name=add_link>"><manoc_icon add>Add Subrange</a></span>
+</div>
+</tmpl_if>
+
+<tmpl_if name=iplist_def>
+<div class="tabbertab tabbertabdefault">
+<tmpl_else> 
+<div class="tabbertab">
+</tmpl_if>
+<h2>Iplist</h2>
+<tmpl_var name=iplist_widget>
+</div>
+
+
+</div>
+
+<tmpl_include name=_footer.tmpl>

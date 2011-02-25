@@ -1,0 +1,135 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use local::lib "$FindBin::Bin/../support";
+
+use POSIX qw(setsid);
+
+use Getopt::Long;
+use Pod::Usage;
+
+use File::Spec; 
+use Config::Simple;
+use Manoc::DB;
+use Manoc::Utils;
+
+my $Conf;
+my $Logger;
+my $Schema;
+
+my @ARCHIVING_SOURCES = qw(Mat Arp Dot11Assoc WinLogon WinHostname);
+
+sub archive {
+    my $time = shift;
+
+    my $archive_age  = Manoc::Utils::str2seconds($Conf->param("archiver.archive_age")); 
+
+    if (! $archive_age) {
+	$Logger->info("Archiver: archive_age = 0: skipping.");
+	return
+    }
+
+    my $archive_date = $time - $archive_age;
+
+    $Logger->info("Archiver: archiving lastseen before " .
+		  Manoc::Utils::print_timestamp($archive_date));
+
+    foreach my $source (@ARCHIVING_SOURCES) {
+	$Schema->resultset($source)->search({
+	    'archived'  => 0,
+	    'lastseen' => { '<', $archive_date },	    
+	})->update({'archived' => 1});
+    }
+}
+
+sub discard {
+    my $time = shift;
+
+    my $discard_age = Manoc::Utils::str2seconds($Conf->param("archiver.discard_age")); 
+
+    if ( ! $discard_age ) {
+	$Logger->info("Archiver: discard_age = 0: skipping.");
+	return
+    }
+
+    my $discard_date = $time - $discard_age;
+
+    $Logger->info("Archiver: deleting lastseen before " .
+		  Manoc::Utils::print_timestamp($discard_date));
+
+    foreach my $source (@ARCHIVING_SOURCES) {
+	$Schema->resultset($source)->search({
+	    'archived'  => 1,
+	    'lastseen' => { '<', $discard_date },	    
+	})->delete();
+    }
+
+    $Schema->resultset('CDPNeigh')->search({
+	'last_seen' => { '<', $discard_date },	    
+    })->delete();
+}
+
+sub session_gc {
+    my $time = shift;
+    
+    my $session_expire = $Conf->param("cgi.session_expire");
+    $session_expire ||=  '+1h';
+
+    my $discard_age  = Manoc::Utils::str2seconds($session_expire);	 
+    my $discard_date = $time - $discard_age - 600;
+
+    
+    $Logger->info("Archiver: deleting sessions older than " .
+		  Manoc::Utils::print_timestamp($discard_date));
+
+
+    $Schema->resultset('Session')->search({
+	'timestamp' => { '<', $discard_date },	    
+    })->delete();
+}
+
+
+
+sub main {
+    my ($help, $man, $conf_file);
+
+    GetOptions(
+		'conf=s'	=> \$conf_file,
+		'help|?'	=> \$help,
+		'man'		=> \$man,
+	) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+    if (!defined $conf_file) {
+	$conf_file = File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+					 'etc',
+					 'manoc.conf');
+	-f $conf_file or die 'Cannot find manoc.conf';
+    }
+
+    $Conf   = new Config::Simple($conf_file);
+    $Logger = Manoc::Utils::init_log(
+				     conf => $Conf,
+				     name => 'manoc.log'
+				     ) || die "Cannot init logger";
+
+    $Schema = Manoc::DB->connect(Manoc::Utils::get_dbi_params($Conf)) ||
+	$Logger->logconfess("cannot connect to DB");
+
+    my $time = time();
+
+    archive($time);
+    discard($time);
+    session_gc($time);
+
+    exit 0;
+}
+
+
+main;

@@ -1,0 +1,41 @@
+<tmpl_include name="_header.tmpl">
+
+<h2>IP Conflicts</h2>
+
+<tmpl_loop name="conflicts">
+  <tmpl_if name="__first__">
+<table>
+       <tr>
+	 <th>IP Adresses</th>
+	 <th>Number of MAC Addr</th>
+       </tr>
+  </tmpl_if>
+       <tr class=results>
+	  <td class="numeric"><manoc_link ip id=ipaddr></td>
+	  <td class="numeric"><tmpl_var name="count"></td>
+       </tr>
+  <tmpl_if name="__last__">
+	</table>
+  </tmpl_if>
+</tmpl_loop>
+
+<h2>Multihomed hosts</h2>
+
+<tmpl_loop name="multihomed">
+  <tmpl_if name="__first__">
+<table>
+       <tr>
+	 <th>MAC Adresses</th>
+	 <th>Number of IP Addr</th>
+       </tr>
+  </tmpl_if>
+       <tr class=results>
+	  <td class="macaddr"><manoc_link mac id=macaddr></td>
+	  <td class="numeric"><tmpl_var name="count"></td>
+       </tr>
+  <tmpl_if name="__last__">
+	</table>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_include name="_footer.tmpl">

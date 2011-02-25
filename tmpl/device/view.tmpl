@@ -1,0 +1,277 @@
+<tmpl_include name="_header.tmpl">
+
+<div class="tabber">
+
+<div class="tabbertab">
+<h2>General</h2>
+<table>
+<tr>
+<td>Name:</td><td><tmpl_var name="name"></td>
+
+
+</tr>
+<tr>
+  <td>Ip Address:</td><td><manoc_link device id=ipaddr></td>
+</tr>
+<tr>
+<td>Last Visited:</td><td><tmpl_var name="last_visited"></td>
+</tr>
+<tr>
+  <td>Model:</td>
+  <td>
+  <tmpl_var escape=html name="vendor"> <tmpl_var escape=html name="model">
+  </td>
+</tr>
+<tr>
+  <td>OS:</td>
+  <td>
+    <tmpl_var escape=html name="os">
+    <tmpl_var escape=html name="os_ver">
+  </td>
+</tr>
+<tr>
+  <td>VTP domain:</td>
+  <td>
+    <tmpl_var escape=html name="vtp_domain">
+  </td>
+</tr>
+<tr>
+ <td>Building:</td>
+ <td><manoc_link building id=building_id name=building_name> (<tmpl_var escape=html name=building_descr>)</td>
+</tr>
+<tr>
+  <td>Rack:</td><td><manoc_link rack id=rack_id name=rack_name></td>
+</tr>
+<tr>
+  <td>Level:</td><td><tmpl_var escape=html name="level"></td>
+</tr>
+<tr>
+ <td>Up from:</td><td><tmpl_var name="boottime"></td>
+</tr>
+<tr>
+  <td>Backup status:</td><td><tmpl_var name="backup_enabled"></td>
+</tr>
+<tr>
+  <td>Last backup:</td>
+  <td>
+  <tmpl_if name="backup_date">
+	<tmpl_var name="backup_date"> 
+	<a href="<tmpl_var name=config_link>">View</a>
+  <tmpl_else>
+	Backup not found
+  </tmpl_if>  
+  </td>
+</tr>
+<tr>
+  <td>Fetch ARP table:</td><td><tmpl_var name="arp_enabled"></td>
+</tr>
+<tmpl_if name="vlan_arpinfo">
+<tr>
+  <td>ARP table to vlan:</td><td><manoc_link vlan id=vlan_arpinfo></td>
+</tr>
+</tmpl_if>
+<tr>
+  <td>Fetch mac-address-table:</td><td><tmpl_var name="mat_enabled"></td>
+</tr>
+<tr>
+  <td>Fetch Dot11 info:</td><td><tmpl_var name="dot11_enabled"></td>
+</tr>
+<tr>
+  <td>Uplinks:</td><td><tmpl_var name="uplinks"></td>
+</tr>
+<tr>
+  <td>Notes:</td><td><tmpl_var escape=html name="notes"></td>
+</tr>
+</table>
+
+
+<p><span class="button"><a href="<tmpl_var name=edit_link>">Edit</a></span>
+<span class="button"><a href="<tmpl_var name=edituplink_link>">Set Uplinks</a></span>
+&nbsp;<span class="button"><a href="<tmpl_var name=changeip_link>">Change
+IP</a></span>&nbsp;<span class="button">
+<a href="<tmpl_var name=delete_link>" onClick="javascript:return confirmDelete()">Delete</a></span>
+
+</p>
+
+</div>
+
+<tmpl_loop name="cdp_links">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>CDP Links</h2>
+    <table class="results">
+       <tr>
+	 <th>Interface</th>
+         <th>To device</th>
+	 <th>Interface</th>
+	 <th>Name</th>
+         <th>Last seen</th>
+       </tr>
+  </tmpl_if>
+    <tr class="results">
+        <td><manoc_link iface device=ipaddr iface=from_iface short></td>
+	<tmpl_if name=to_name>
+         <td><manoc_link device id=to_device></td>
+         <td><manoc_link iface device=to_device iface=to_iface short></td>
+	 <td><tmpl_var name=to_name></td>
+	<tmpl_else>
+         <td><tmpl_var name=to_device></td>
+         <td><tmpl_var name=to_iface></td>
+	 <td>na</td>
+	</tmpl_if>
+	<td><tmpl_var name=date></td>
+    </tr>
+ <tmpl_if name="__last__">
+     </table>
+  </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="iface_info">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>Interfaces Status</h2>
+    <table class="results">
+       <tr>
+	 <td></td>
+         <th>Interface</th>
+	 <th>Connected</th>
+	 <th>Adm Status</th>
+	 <th>Speed</th>
+	 <th>Duplex</th>
+	 <th>Vlan</th>
+	 <th colspan="2">Port Security</th>
+	 <th>Description</th>
+       </tr>
+  </tmpl_if>
+       <tr>
+   	  <td><tmpl_if name=has_notes><a href="<tmpl_var name=edit_note_link>"><manoc_icon edit></a></tmpl_if></td> 
+	  <td><manoc_link iface device=ipaddr iface=interface short></td>
+	  <td><tmpl_var name="up"></td>
+	  <td>
+        <tmpl_if name=enable_updown>
+          <a onClick="javascript:return confirmChangePortStatus();" href=<tmpl_var name=updown_status_link>> <tmpl_var name="up_admin"> </a>
+        <tmpl_else>
+          <tmpl_var name="up_admin">
+        </tmpl_if>
+      </td>
+	  <td><tmpl_var name="speed"></td>
+	  <td><tmpl_var name="duplex">/<tmpl_var name="duplex_admin"></td>
+	  <td><tmpl_var name="vlan"></td>
+        <tmpl_if name=cps_enable>
+	 <td><tmpl_var name=cps_status></td>
+	 <td>(<tmpl_var name=cps_count>)</td>
+	<tmpl_else>
+  	  <td colspan="2">Disabled</td>
+	</tmpl_if>	
+	  <td><tmpl_var escape=html name="description"></td>
+	   </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="iface_info">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>Interfaces Activity</h2>
+    <table class="results">
+       <tr>
+	 <td></td>
+         <th>Interface</th>
+	 <th>Admin Status</th>
+	 <th>Last MAT activity date</th>
+	 <th>Description</th>
+       </tr>
+  </tmpl_if>
+       <tr>
+   	  <td><tmpl_if name=has_notes><a href="<tmpl_var name=edit_note_link>"><manoc_icon edit></a></tmpl_if></td> 
+	  <td><manoc_link iface device=ipaddr iface=interface short></td>
+	  <td><tmpl_var name="up_admin"></td>
+          <td><tmpl_var name="last_mat"></td>
+	  <td><tmpl_var escape=html name="description"></td>
+	   </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+
+
+<tmpl_loop name="ssid_list">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>SSID List</h2>
+    <table class="results">
+       <tr>
+         <th>Interface</th>
+	 <th>SSID</th>
+	 <th>Broadcast</th>
+	 <th>Channel</th>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td><manoc_link iface device=ipaddr iface=interface short></td>
+	  <td><manoc_link ssid id=ssid></td>
+	  <td><tmpl_var name="broadcast"></td>
+	  <td><tmpl_var name="channel"></td>
+       </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<tmpl_loop name="dot11_clients">
+  <tmpl_if name="__first__">
+    <div class="tabbertab">
+    <h2>Associated clients</h2>
+    <table class="results">
+       <tr>
+	 <th>SSID</th>
+	 <th>Mac Address</th>
+	 <th>IP Address</th>
+	 <th>Vlan</th>
+	 <th>State</th>
+	 <th>Quality</th>
+ 	 <td></td>
+       </tr>
+  </tmpl_if>
+       <tr>
+	  <td><manoc_link ssid id="ssid"></td>
+	  <td><manoc_link mac id="macaddr"></td>
+	  <td class="ipaddr"><manoc_link ip id=ipaddr></td>
+	  <td><manoc_link vlan id=vlan></td>
+	  <td><tmpl_var name="state"></td>
+	  <td><tmpl_var name="quality"></td>
+	  <td><a href="<tmpl_var name=detail_link>">details</a></td>
+       </tr>
+  <tmpl_if name="__last__">
+     </table>
+     </div>
+  </tmpl_if>
+</tmpl_loop>
+
+<div class="tabbertab">
+  <h2>Unused Interfaces</h2>
+  <table>
+    <tr>
+	 <th>Device</th>
+	 <th>Interface</th>
+	 <th>Description</th>
+    </tr>
+    <tmpl_loop name="unused_ifaces">
+      <tr class=results>
+        <td><manoc_link device id=device></td>
+        <td><manoc_link iface device=device iface=interface short></td>
+        <td><tmpl_var name="description"></td>
+      </tr>
+    </tmpl_loop>
+  </table>
+</div>
+
+</div>
+
+<tmpl_include name="_footer.tmpl">

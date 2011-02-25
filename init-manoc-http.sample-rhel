@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# manoc-http        This starts and stops manoc http
+#
+# chkconfig: 345 56 50
+# description: http server for manoc
+#
+# pidfile: /var/run/manoc-http.pid
+
+PATH=/sbin:/bin:/usr/bin:/usr/sbin
+
+# Source function library.
+. /etc/init.d/functions
+
+# Get config.
+test -f /etc/sysconfig/network && . /etc/sysconfig/network
+
+# Check that we are root ... so non-root users stop here
+[ `id -u` = 0 ] || exit 1
+
+# Check that networking is up.
+[ "${NETWORKING}" = "yes" ] || exit 0
+
+RETVAL=0
+
+STARMAN="/opt/manoc/perl5/bin/starman"
+MANOC_HOME="/opt/manoc/manoc-1.0"
+PID_FILE="/var/run/manoc-http/pid"
+PORT=8000
+HOST=127.0.0.1
+WORKERS=6
+MAXREQUESTS=50
+LOCALLIB=/opt/manoc/perl5/
+USER=manocapp
+GROUP=manocapp
+
+DAEMON_OPTIONS="--pidfile $PID_FILE"
+
+
+if test -n "$LOCALLIB"; then
+    eval `perl -Mlocal::lib=$LOCALLIB`
+fi
+
+
+start(){
+    echo -n $"Starting manoc-http: "
+
+    piddir=`dirname $PID_FILE`
+    test -d $piddir || mkdir -p $piddir
+
+    # build starman command line
+    STARMAN_OPTS="-D -E deploy --workers $WORKERS --pid $PID_FILE -I$MANOC_HOME/lib --listen $HOST:$PORT"
+    test -n "$MAXREQUESTS" && STARMAN_OPTS="$STARMAN_OPTS --max-request $MAXREQUESTS"
+    test -n "$USER"  && STARMAN_OPTS="$STARMAN_OPTS --user $USER"
+    test -n "$GROUP" && STARMAN_OPTS="$STARMAN_OPTS --group $GROUP"
+    STARMAN_OPTS="$STARMAN_OPTS $MANOC_HOME/app.psgi"
+
+
+    daemon $DAEMON_OPTIONS $STARMAN "$STARMAN_OPTS"
+    RETVAL=$?
+    echo
+    touch /var/lock/subsys/manoc-http
+    return $RETVAL
+}
+
+stop(){
+    echo -n $"Stopping $prog: "
+    killproc -p $PID_FILE $prog  
+    RETVAL=$?
+    echo
+    rm -f /var/lock/subsys/manoc-http
+    return $RETVAL
+
+}
+
+restart(){
+    stop
+    start
+}
+
+condrestart(){
+    [ -e /var/lock/subsys/manoc-http ] && restart
+    return 0
+}
+
+
+# See how we were called.
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status -p $PID_FILE starman
+	RETVAL=$?
+	;;
+    restart)
+	restart
+	;;
+    condrestart)
+	condrestart
+	;;
+    *)
+	echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
+	RETVAL=1
+esac
+
+exit $RETVAL

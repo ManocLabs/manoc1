@@ -1,0 +1,20 @@
+#!/usr/bin/perl -T
+use strict;
+
+use lib "../lib";
+
+use Manoc::WapiApp;
+use Manoc::Utils;
+
+use FindBin;
+use File::Spec;
+
+
+my $manoc_conf = $ENV{MANOC_CONF};
+$manoc_conf ||= File::Spec->catfile(Manoc::Utils::get_manoc_home(),
+				    'etc', 'manoc.conf');
+
+my $app = Manoc::WapiApp->new(home => Manoc::Utils::get_manoc_home(),
+			      conf => $manoc_conf);
+$app->run();
+1;

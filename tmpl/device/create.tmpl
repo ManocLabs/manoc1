@@ -1,0 +1,76 @@
+<tmpl_include name="_header.tmpl">
+
+<form method="POST">
+
+
+<table>
+
+<tr>
+<td>Building:</td>
+<td>
+<tmpl_if name=building>
+  <input name="building" type="hidden" value="<tmpl_var name=building>" />
+  <tmpl_var name=building_name>
+<tmpl_else>
+  <select name="building">
+    <tmpl_loop name="building_list">
+    <option value="<tmpl_var name=id>"><tmpl_var name="label"></option>
+    </tmpl_loop>
+  </select>
+  <a href="<tmpl_var name=new_building_link>">New</a>
+    <input name="step" type="hidden" value="1" />
+</tmpl_if>
+</td>
+</tr>
+
+<tmpl_if name=building>
+<tr>
+<td>Rack:</td>
+<td>
+<tmpl_if name=rack>
+  <input name="rack" type="hidden" value="<tmpl_var name=rack>" />
+  <tmpl_var name=rack_name>
+<tmpl_else>
+  <select name="rack">
+    <tmpl_loop name="rack_list">
+    <option value="<tmpl_var name=id>"><tmpl_var name="label"></option>
+    </tmpl_loop>
+  </select>
+  <a href="<tmpl_var name=new_rack_link>">New</a>
+  <input name="step" type="hidden" value="2" />
+</tmpl_if>
+</td>
+</tr>
+</tmpl_if>
+
+<tmpl_if name=rack>
+<tr>
+  <td>Ip Address:</td>
+  <td>
+  <input type="text" name="id" value="<tmpl_var escape=html name=ipaddr>" />
+  </td>
+</tr>
+<tr>
+  <td>Name: *</td>
+  <td><input type="text" name="name" value="<tmpl_var escape=html name=name>" /></td>
+</tr>
+<tr>
+  <td>Model: *</td>
+  <td><input type="text" name="model" value="<tmpl_var escape=html name=model>" /></td>
+</tr>
+<tr>
+  <td>Rack:</td>
+  <td><tmpl_var name="rack_label"></td>
+</tr>
+</tmpl_if>
+</table>
+
+<tmpl_if name=rack>
+<input name="step" type="hidden" value=3 />
+<div class="hint">* If empty will be filled by netwalker.</div></p>
+</tmpl_if>
+<input type="submit" name="submit" value="submit" />
+</form>
+
+
+<tmpl_include name="_footer.tmpl">
