@@ -401,7 +401,7 @@ sub rm_ip {
     my $note = $schema->resultset('IpNotes')->find({ipaddr => $q});
 
     @r = $schema->resultset('WinHostname')->search(ipaddr => $q,
-						   { order_by => 'name'});
+						   { order_by => 'lastseen DESC'});
     my @hostnames = map +{
 	name   => $_->name,
 	firstseen => print_timestamp($_->firstseen),
