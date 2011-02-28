@@ -21,21 +21,24 @@ test -f /etc/sysconfig/network && . /etc/sysconfig/network
 # Check that networking is up.
 [ "${NETWORKING}" = "yes" ] || exit 0
 
-RETVAL=0
+# the name that shows in messages
+PROG=manoc-http
 
-STARMAN="/opt/manoc/perl5/bin/starman"
-MANOC_HOME="/opt/manoc/manoc-1.0"
+STARMAN="/drbd/manoc/perl5/bin/starman"
+MANOC_HOME="/drbd/manoc/manoc-1.0"
 PID_FILE="/var/run/manoc-http/pid"
 PORT=8000
 HOST=127.0.0.1
-WORKERS=6
-MAXREQUESTS=50
-LOCALLIB=/opt/manoc/perl5/
+WORKERS=8
+MAXREQUESTS=100
+LOCALLIB=/drbd/manoc/perl5/
 USER=manocapp
 GROUP=manocapp
 
+STARMAN_EXTRA_OPTS="-MFindBin --disable-keepalive"
 DAEMON_OPTIONS="--pidfile $PID_FILE"
 
+RETVAL=0
 
 if test -n "$LOCALLIB"; then
     eval `perl -Mlocal::lib=$LOCALLIB`
@@ -43,7 +46,7 @@ fi
 
 
 start(){
-    echo -n $"Starting manoc-http: "
+    echo -n $"Starting $PROG: "
 
     piddir=`dirname $PID_FILE`
     test -d $piddir || mkdir -p $piddir
@@ -53,7 +56,7 @@ start(){
     test -n "$MAXREQUESTS" && STARMAN_OPTS="$STARMAN_OPTS --max-request $MAXREQUESTS"
     test -n "$USER"  && STARMAN_OPTS="$STARMAN_OPTS --user $USER"
     test -n "$GROUP" && STARMAN_OPTS="$STARMAN_OPTS --group $GROUP"
-    STARMAN_OPTS="$STARMAN_OPTS $MANOC_HOME/app.psgi"
+    STARMAN_OPTS="$STARMAN_OPTS $STARMAN_EXTRA_OPTS $MANOC_HOME/app.psgi"
 
 
     daemon $DAEMON_OPTIONS $STARMAN "$STARMAN_OPTS"
@@ -64,8 +67,8 @@ start(){
 }
 
 stop(){
-    echo -n $"Stopping $prog: "
-    killproc -p $PID_FILE $prog  
+    echo -n $"Stopping $PROG: "
+    killproc -p $PID_FILE "$PROG"
     RETVAL=$?
     echo
     rm -f /var/lock/subsys/manoc-http
@@ -93,7 +96,7 @@ case "$1" in
 	stop
 	;;
     status)
-	status -p $PID_FILE starman
+	status -p $PID_FILE "$PROG"
 	RETVAL=$?
 	;;
     restart)
