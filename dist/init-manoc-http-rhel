@@ -15,23 +15,20 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin
 # Get config.
 test -f /etc/sysconfig/network && . /etc/sysconfig/network
 
-# Check that we are root ... so non-root users stop here
-[ `id -u` = 0 ] || exit 1
-
 # Check that networking is up.
 [ "${NETWORKING}" = "yes" ] || exit 0
 
 # the name that shows in messages
 PROG=manoc-http
 
-STARMAN="/drbd/manoc/perl5/bin/starman"
-MANOC_HOME="/drbd/manoc/manoc-1.0"
+STARMAN="/usr/bin/starman"
+MANOC_HOME="/opt/manoc"
 PID_FILE="/var/run/manoc-http/pid"
 PORT=8000
 HOST=127.0.0.1
 WORKERS=8
 MAXREQUESTS=100
-LOCALLIB=/drbd/manoc/perl5/
+LOCALLIB=
 USER=manocapp
 GROUP=manocapp
 
@@ -47,6 +44,11 @@ fi
 
 start(){
     echo -n $"Starting $PROG: "
+    
+    if ! test -f $MANOC_HOME/app.psgi; then
+        echo "Missing app.psgi file"
+        exit 6
+    fi
 
     piddir=`dirname $PID_FILE`
     test -d $piddir || mkdir -p $piddir

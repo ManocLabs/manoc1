@@ -9,7 +9,7 @@ use Plack::App::File;
 
 use File::Spec;
 
-my $manoc_home = '/home/manoc/production';
+my $manoc_home = '/opt/manoc';
 
 my $manoc_conf = $ENV{MANOC_CONF};
 $manoc_conf ||= File::Spec->catfile($manoc_home,

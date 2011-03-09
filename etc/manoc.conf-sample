@@ -1,37 +1,74 @@
-[general]
-
 [db]
 #source = sqlite
 source = DBI:mysql:database=manoc;host=localhost
 user = "manoc"
-auth = "manoc123"
+auth = "manoc"
+
 
 [password]
-snmp = Mon1tor1ZZ4
-telnet = boh
-enable = riboh
+snmp   = public
+telnet = admin
+enable = cisco
+
 
 [cgi]
+
 # without trailing slash!
 app_path = manoc
 
+# session_expire = 1h
+
+
 [netwalker]
+
+# try to filter non physical interface
+iface_filter = 1
+
+# don't get info from portchannel interfaces
+# ignore_portchannel = 1
+
 # 0 to disable
 ifstatus_interval = 3600
-iface_filter = 1
+
+# where to store lock files
+# lock_dir = run
+
 check_db = 1
 #require check_db
 update_device_db = 1 
-native_vlan = 1
+
+# assume this is the native vlan
+vlan = 1
+
+# use a value > 1 to enable multiprocess
+n_procs = 0
+
+# default snmp version for querying devices
+# snmp_version = 2
+
+# get vtp info from these devices
+# vtp_server=192.168.1.1,192.168.1.2
+
 
 [archiver]
 archive_age = 86400
-delete_age = 86400
+
+# data retention: use 0 to keep data forever
+delete_age = 1y
+
 
 [arpsniffer]
 #native vlan
 vlan = 1
+
 refresh_interval = 600
+
+# if empty let pcap choose the device
+# device = eth1
+
+# don't get data from thess vlans
+# vlan_filter=2,10,20
+
 
 [backup]
 interval = 1d

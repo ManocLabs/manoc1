@@ -17,10 +17,8 @@
 
 . /etc/init.d/functions
 
-MANOC_HOME=/home/manocuser/manoc
+MANOC_HOME=/opt/manoc
 MANOC_ARPD=$MANOC_HOME/bin/arpsnifferd
-
-test -x $MANOC_ARPD || exit 5
 
 #LOCALLIB=/home/manocuser/perl5/
 #if test -n "$LOCALLIB"; then
@@ -29,6 +27,7 @@ test -x $MANOC_ARPD || exit 5
 
 case "$1" in
     start)
+	test -x $MANOC_ARPD || exit 5
 	echo -n "Starting manoc arp sniffer "
 	daemon $MANOC_ARPD --daemon
 	RETVAL=$?
