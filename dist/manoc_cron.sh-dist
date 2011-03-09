@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BASE_DIR=/home/manoc/production
+BASE_DIR=/opt/manoc/production
 LOG=$BASE_DIR/log/cron.log
 
 echo >> $LOG
