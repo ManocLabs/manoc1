@@ -161,6 +161,14 @@ sub edit : Resource  {
     my $rack = $schema->resultset('Rack')->find({id => $id});
     defined($rack) or
 	return $app->show_message('Error', 'Rack not found');
+
+    my $building_id = $rack->building->id;
+    my @buildings = $schema->resultset('Building')->all();
+    my @building_list =  map +{ 
+	id		=> $_->id,
+	label		=> $_->name . ' (' . $_->description .')',
+	selected	=> defined($building_id) && $building_id eq $_->id
+	}, @buildings;
     
     my $message;
     if ($query->param('submit')) {
@@ -178,7 +186,7 @@ sub edit : Resource  {
     $tmpl_param{name}	= $query->param('name') || $rack->name;
     $tmpl_param{floor}	= $query->param('floor') || $rack->floor;
     $tmpl_param{notes}	= $query->param('notes') || $rack->notes;
-    $tmpl_param{building_label} = 'Building ' . $rack->building->id . ' (' . $rack->building->description .')';
+    $tmpl_param{building_list} = \@building_list;
     $tmpl_param{message}= $message;
     
     my $template = $app->prepare_tmpl(
@@ -210,11 +218,18 @@ sub process_edit_rack {
 	return (0, 'Duplicated name');
     }
 
+    # valudate building
+    my $building_id  = $query->param('building');
+    my $building = $schema->resultset('Building')->find($building_id);
+    defined($building) or return (0, 'Building not found');
+
+    
     my $notes = $query->param('notes');
     
     $rack->name($name);
     $rack->notes($notes);
     $rack->floor($floor);
+    $rack->building($building);
     $rack->update;
 
     return 1;
