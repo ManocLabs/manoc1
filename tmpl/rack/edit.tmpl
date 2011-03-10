@@ -9,7 +9,16 @@
 </tr>
 <tr>
   <td>Building</td>
-  <td><tmpl_var escape=html name=building_label></td>
+  <td>
+    <select name="building">
+    <tmpl_loop name="building_list">
+    <option value="<tmpl_var name=id>"
+      <tmpl_if name=selected>selected="1"</tmpl_if>>
+      <tmpl_var name="label">
+    </option>
+    </tmpl_loop>
+    </select>
+  </td>
 </tr>
 <tr>
   <td>Floor:</td>
