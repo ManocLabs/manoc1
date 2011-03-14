@@ -187,7 +187,7 @@ sub process_new_vlan {
 
     #Check new vlan id
     $id =~ /^\d+$/ or return (0, "Invalid vlan id");
-    $schema->resultset('Vlan')->find('id' => $id) and return (0, "Duplicated vlan id");
+    $schema->resultset('Vlan')->find($id) and return (0, "Duplicated vlan id");
 
     #Check parameters
     ($res, $message) = check_parameters($schema, $id, $name, 0);
@@ -236,7 +236,7 @@ sub edit : Resource {
     }
 
     #Get and check vlan 
-    $vlan = $schema->resultset('Vlan')->find('id' => $id);
+    $vlan = $schema->resultset('Vlan')->find($id);
     (!defined($vlan)) and return $app->show_message('Error', 'Vlan not found');
 
     #Set template parameters
@@ -329,7 +329,7 @@ sub check_parameters {
 
     $name or return (0, "Please insert vlan name");
 
-    $dup = $schema->resultset('Vlan')->find('name' => $name);
+    $dup = $schema->resultset('Vlan')->find({'name' => $name});
     if ($dup) {($edit_enable and ($dup->id == $id)) or return (0, "Duplicated vlan name");}
     $name =~ /^\w[\w-]*$/ or return (0, "Invalid vlan name: $name");
 
