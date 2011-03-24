@@ -22,16 +22,17 @@ my ($Conf, $Schema);
 
 
 my ($help, $man, $conf_file, $verbose);
-my ($opt_numeric, $opt_days, $opt_sort_address);
+my ($opt_numeric, $opt_days, $opt_sort_address, $opt_show_rack,);
 
 GetOptions(
-    'conf=s'		=> \$conf_file,
-    'help|?'		=> \$help,
-    'man'		=> \$man,
-    'days=i'    	=> \$opt_days,
-    'numeric'	   	=> \$opt_numeric,
-    'sort-address' 	=> \$opt_sort_address,
-    'verbose'		=> \$verbose,
+           'conf=s'		=> \$conf_file,
+           'help|?'		=> \$help,
+           'man'		=> \$man,
+           'days=i'	    	=> \$opt_days,
+           'numeric'	   	=> \$opt_numeric,
+           'sort-address' 	=> \$opt_sort_address,
+           'show-rack'		=> \$opt_show_rack,
+           'verbose'		=> \$verbose,
     ) or pod2usage(2);
 
 pod2usage(1) if $help;
