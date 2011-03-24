@@ -126,10 +126,11 @@ sub winlogon {
     }
 
     my @entries = $schema->resultset('WinLogon')->search({
-							 user	  => $user,
+							 user	  => lc($user),
 							 ipaddr	  => $ipaddr,
 							 archived => 0
 							 });
+
 
     scalar(@entries) > 1 and 
 	return "Error";
