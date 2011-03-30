@@ -174,7 +174,7 @@ sub edit : Resource{
     }
 
     #Retrieve vlan range attributes
-    $vlan_range = $schema->resultset('VlanRange')->find('id' => $id);
+    $vlan_range = $schema->resultset('VlanRange')->find($id);
     (!defined($vlan_range)) and return $app->show_message('Error', 'Vlan Range not found');
     $name        = $vlan_range->name;
     $start       = $vlan_range->start;
@@ -254,7 +254,7 @@ sub split_vlanrange : Resource("split"){
     }
 
     #Retrieve vlan range attributes
-    $vlan_range = $schema->resultset('VlanRange')->find('id' => $id);
+    $vlan_range = $schema->resultset('VlanRange')->find($id);
     (!defined($vlan_range)) and return $app->show_message('Error', 'Vlan Range not found');
 
     #Set template parameters
@@ -288,7 +288,7 @@ sub process_split_vlanrange {
     my ($vlan_range, $vlan_range1, $vlan_range2, @vlans, $res, $message);
 
     #Get parent vlan range values
-    $vlan_range = $schema->resultset('VlanRange')->find('id' => $id);
+    $vlan_range = $schema->resultset('VlanRange')->find($id);
 
     #Check names
     ($res, $message) = check_name ($schema, undef, $name1);
@@ -357,7 +357,7 @@ sub merge_vlanrange : Resource("merge"){
     }
 
     #Retrieve vlan range attributes
-    $vlan_range = $schema->resultset('VlanRange')->find('id' => $id);
+    $vlan_range = $schema->resultset('VlanRange')->find($id);
     (!defined($vlan_range)) and return $app->show_message('Error', 'Vlan Range not found');
 
     @neigh_rs = get_neighbours($schema, $vlan_range);
@@ -401,14 +401,14 @@ sub process_merge_vlanrange {
     my ($vlan_range, $neigh, $new_vlan_range, @vlans, $res, $message);
 
     #Get vlan range values
-    $vlan_range = $schema->resultset('VlanRange')->find('id' => $id);
+    $vlan_range = $schema->resultset('VlanRange')->find($id);
 
     #Check new vlan range name
     ($res, $message) = check_name ($schema, undef, $new_name);
     $res or return ($res, $message);
 
     #Check neighbour
-    $neigh = $schema->resultset('VlanRange')->find('id' => $sel_vlan_range_id);
+    $neigh = $schema->resultset('VlanRange')->find($sel_vlan_range_id);
     $neigh or return (0, "Invalid neighbour vlan range");
 
     #Update DB (with a transaction)
@@ -531,7 +531,7 @@ sub check_name {
 
     my ($schema, $id, $name) = @_;
 
-    my $dup = $schema->resultset('VlanRange')->find('name' => $name);
+    my $dup = $schema->resultset('VlanRange')->find({'name' => $name});
     if ($dup) {$dup->id == $id or return (0, "Duplicated vlan range name: $name");}
     $name =~ /^\w[\w-]*$/ or return (0, "Invalid vlan range name: $name");
 }

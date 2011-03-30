@@ -498,7 +498,7 @@ sub rm_ipnotes_edit {
         }
     }
     
-    my $ipnotes = $schema->resultset('IpNotes')->find(ipaddr => $ip_addr);
+    my $ipnotes = $schema->resultset('IpNotes')->find({ipaddr => $ip_addr});
     my $text = defined($ipnotes) ? $ipnotes->notes : '';
 
     my $template = $self->prepare_tmpl(
@@ -523,10 +523,10 @@ sub process_ipnotes_edit {
     my $query = $self->query;
     my $notes  = $query->param('notes');
     
-    my $arp_entry  = $schema->resultset('Arp')->find(ipaddr => $ip_addr);
+    my $arp_entry  = $schema->resultset('Arp')->find({ipaddr => $ip_addr});
     defined($arp_entry) or return (0, 'Invalid IP address');
 
-    my $ipnotes = $schema->resultset('IpNotes')->find(ipaddr => $ip_addr);
+    my $ipnotes = $schema->resultset('IpNotes')->find({ipaddr => $ip_addr});
 
     if ($ipnotes) {
 	# update 
@@ -790,10 +790,10 @@ sub rm_ifnotes_edit {
 	}
     }
     
-    my $ifnotes = $schema->resultset('IfNotes')->find(
+    my $ifnotes = $schema->resultset('IfNotes')->find({
 					     device	=> $device_id,
 					     interface => $iface_id,
-					     );
+					     });
     my $text = defined($ifnotes) ? $ifnotes->notes : '';
 
     my $template = $self->prepare_tmpl(
@@ -820,15 +820,15 @@ sub process_ifnotes_edit {
     my $query = $self->query;
     my $notes  = $query->param('notes');
     
-    my $device  = $schema->resultset('Device')->find(id => $device_id);
+    my $device  = $schema->resultset('Device')->find({id => $device_id});
     defined($device) or
 	return (0, 'Invalid device');
 
 
-    my $ifnotes = $schema->resultset('IfNotes')->find(
+    my $ifnotes = $schema->resultset('IfNotes')->find({
 						      device    => $device_id,
 						      interface => $iface_id,
-						      );
+						      });
 
     if ($ifnotes) {
 	# update 

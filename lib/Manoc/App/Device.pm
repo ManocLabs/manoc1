@@ -380,14 +380,14 @@ sub create : Resource {
     my @building_list;
     
     if ($rack_id) {
-	$rack = $schema->resultset('Rack')->find({id => $rack_id});
+	$rack = $schema->resultset('Rack')->find($rack_id);
 	defined($rack) or
 	    return $app->show_message('Error', 'Trying to create a device without a valid rack');
 
 	$building    = $rack->building;
 	$building_id = $rack->building->id;
     } elsif ($building_id) {
-	$building = $schema->resultset('Building')->find({id => $building_id});
+	$building = $schema->resultset('Building')->find($building_id);
 
 	defined($building) or
 	    return $app->show_message('Error', 'Trying to create a device without a valid building');
@@ -451,7 +451,7 @@ sub process_create_device {
 	return (0, 'Device ID is not a valid IPv4 address');
 
     # check duplicated ID
-    my $device = $schema->resultset('Device')->find(id => $id);
+    my $device = $schema->resultset('Device')->find($id);
     if ($device) {
 	return (0, 'IP Address already in use');
     }
@@ -487,7 +487,7 @@ sub edit : Resource {
     defined($id) or
 	return $app->show_message('Error', 'No device specified');
     
-    my $device = $schema->resultset('Device')->find({id => $id});
+    my $device = $schema->resultset('Device')->find($id);
     defined($device) or
 	return $app->show_message('Error', 'Device not found');
 
@@ -625,7 +625,7 @@ sub change_ip : Resource {
     defined($id) or 
 	return $app->show_message('Error', 'Device not specified');
     
-    my $device = $schema->resultset('Device')->find(id => $id);
+    my $device = $schema->resultset('Device')->find($id);
     defined($device) or
 	return $app->show_message('Error', 'Device not found');
     my $message;    
@@ -747,7 +747,7 @@ sub delete : Resource {
     defined($id) or
 	return $app->show_message('Error', 'No device specified');
     
-    my $device = $schema->resultset('Device')->find({id => $id});
+    my $device = $schema->resultset('Device')->find($id);
     defined($device) or
 	return $app->show_message('Error', 'Device not found');
     
@@ -816,7 +816,7 @@ sub uplinks : Resource {
     defined($id) or
 	return $app->show_message('Error', 'No device specified');
     
-    my $device = $schema->resultset('Device')->find({id => $id});
+    my $device = $schema->resultset('Device')->find($id);
     defined($device) or
 	return $app->show_message('Error', 'Device not found');
 
