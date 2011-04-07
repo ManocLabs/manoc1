@@ -45,11 +45,11 @@ print "Enter admin password: ";
 my $password = <>;
 chomp $password;
 
-my $admin = $schema->resultset('User')->find_or_create({ login => 'admin' });
+my $admin = $schema->resultset('User')->find_or_new({ login => 'admin' });
 $admin || die "Cannot modify user admin";
 $admin->password(Digest::MD5::md5_base64($password));
 $admin->active(1);
-$admin->update() || die "Cannot modify user admin";
+$admin->update_or_insert() || die "Cannot modify user admin";
 print "Password resetted.\n";
 
 my $admin_role = $schema->resultset('Role')->find({role => 'admin'});
