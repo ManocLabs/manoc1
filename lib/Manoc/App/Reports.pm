@@ -129,7 +129,7 @@ sub multihost : Resource {
 				  ],   
 				      
 			     as => [ 'device', 'interface', 'count', 'description' ],
-			     group_by => [ 'device', 'interface' ],		     
+			     group_by => [ 'me.device', 'me.interface' ],		     
 			     having => { 'COUNT(DISTINCT(macaddr))' => { '>', 1 } },
 			     order_by => [ 'me.device', 'me.interface' ],
 			     alias => 'me',
