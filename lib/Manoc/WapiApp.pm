@@ -27,6 +27,7 @@ sub setup {
 
     $self->run_modes([qw(about winlogon hostinfo
 			 dhcp_leases dhcp_reservations
+			 update_status
 			 )]);
 
     # mode name directly from $ENV{PATH_INFO}.
@@ -249,6 +250,22 @@ sub dhcp_reservations {
     return "$server: $n_created/" . scalar(@$records);
 }
 
+#----------------------------------------------------------------------#
+
+sub update_status {
+    my $self     = shift;    
+    my $schema   = $self->param('schema');
+
+    my $rs;
+    my $data;
+
+    foreach my $name (qw(Arp Mat WinLogon WinHostname)) {
+	$rs = $schema->resultset($name);
+	$data->{$name} = $rs->get_column('lastseen')->max();
+    }
+
+    return YAML::Any::Dump($data);
+}
 
 #----------------------------------------------------------------------#
 1;
