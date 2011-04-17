@@ -290,7 +290,7 @@ sub update_arp {
     my $self = shift;
     my ($info, $device) = @_;
 
-    my $vlan = $device->vlan_arpinfo() || $self->vlan;
+    my $vlan = $device->def_vlan() || $self->vlan;
     my $ip_table   = $info->ipNetToMediaTable;
     my $schema = $self->schema;
     my $logger = $self->logger,
@@ -467,7 +467,8 @@ sub update_mat_tables {
 
     # update MAT
     my $mat   = $info->get_mat();
-    $self->merge_mat($mat, $host, $port_to_switch, $self->vlan);
+    my $def_vlan = $device->def_vlan || $self->vlan;
+    $self->merge_mat($mat, $host, $port_to_switch, $def_vlan);
 
     if($info->cisco_comm_indexing()) {
 	$logger->debug("Device supports Cisco commuinty string indexing. Connecting to each VLAN");

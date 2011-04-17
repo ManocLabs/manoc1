@@ -413,7 +413,8 @@ sub update_mat_tables {
 
     # update MAT
     my $mat   = $info->get_mat();
-    merge_mat($mat, $host, $port_to_switch, $Vlan);
+    my $def_vlan = $device->def_vlan || $Vlan;
+    merge_mat($mat, $host, $port_to_switch, $def_vlan);
 
     if($info->cisco_comm_indexing()) {
 	$Logger->debug("Device supports Cisco commuinty string indexing. Connecting to each VLAN");
@@ -494,7 +495,7 @@ sub update_vtp {
 sub update_arp {
     my ($info, $device) = @_;
 
-    my $vlan = $device->vlan_arpinfo() || $Vlan;
+    my $vlan = $device->def_vlan() || $Vlan;
 
     my $at_paddr   = $info->at_paddr();
     my $at_netaddr = $info->at_netaddr();
