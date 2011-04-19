@@ -176,6 +176,7 @@ sub view : Resource {
     $tmpl_param{dot11_enabled}	= $device->get_dot11 ? "Enabled" : "Not enabled";
     $tmpl_param{arp_enabled}	= $device->get_arp   ? "Enabled" : "Not enabled";
     $tmpl_param{mat_enabled}	= $device->get_mat   ? "Enabled" : "Not enabled";
+    $tmpl_param{vlan_arpinfo}	= $device->vlan_arpinfo;
     $tmpl_param{def_vlan}	= $device->def_vlan;
     $tmpl_param{uplinks}        = join(", ", map { $_->interface  } $device->uplinks->all());
 
@@ -505,9 +506,9 @@ sub edit : Resource {
     my %form_value;
     $form_value{id} = $id;
     foreach my $v (qw(name model level notes 
-		      get_mat get_dot11 get_arp def_vlan
+		      get_mat get_dot11 get_arp vlan_arpinfo
 		      telnet_pwd enable_pwd 
-		      snmp_com snmp_user snmp_password )) 
+		      snmp_com snmp_user snmp_password def_vlan)) 
     {
         $form_value{$v} = $query->param($v) || $device->get_column($v) || '';
     }      
@@ -565,13 +566,19 @@ sub process_edit_device {
     my $rack = $schema->resultset('Rack')->find($rack_id);
     defined($rack) or return (0, 'Rack not found');
 
-    # validate vlan for arp info
+    # validate vlan for arp info and def_vlan
+    my $vlan_arpinfo = $query->param('vlan_arpinfo');
+    if ($vlan_arpinfo =~ /\w/ ) {
+	$vlan_arpinfo =~ /^\d+$/o or return (0, 'Invalid vlan');
+    } else {
+	$vlan_arpinfo = undef;
+    }
     my $def_vlan = $query->param('def_vlan');
     if ($def_vlan =~ /\w/ ) {
 	$def_vlan =~ /^\d+$/o or return (0, 'Invalid vlan');
     } else {
 	$def_vlan = undef;
-    }  
+    }
 
     # passwords: empty values are null
     my $telnet_pwd = $query->param('telnet_pwd');
@@ -597,6 +604,7 @@ sub process_edit_device {
 
     # not in foreach because there can be null values 
     $device->level($level);
+    $device->vlan_arpinfo($vlan_arpinfo);
     $device->def_vlan($def_vlan);
     $device->telnet_pwd($telnet_pwd);
     $device->enable_pwd($enable_pwd);    

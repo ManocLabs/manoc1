@@ -132,6 +132,11 @@ __PACKAGE__->add_columns(
 			     size		=> 1,
 			     default		=> '0',
 			 },
+			 vlan_arpinfo => {
+			     data_type		=> 'integer',
+			     default		=> 'NULL',
+			     is_nullable	=> 1,
+			 },
 			 def_vlan => {
 			     data_type		=> 'integer',
 			     default		=> 'NULL',

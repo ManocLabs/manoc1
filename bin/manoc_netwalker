@@ -495,7 +495,7 @@ sub update_vtp {
 sub update_arp {
     my ($info, $device) = @_;
 
-    my $vlan = $device->def_vlan() || $Vlan;
+    my $vlan = $device->vlan_arpinfo() || $Vlan;
 
     my $at_paddr   = $info->at_paddr();
     my $at_netaddr = $info->at_netaddr();

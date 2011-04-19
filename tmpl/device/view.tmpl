@@ -65,9 +65,14 @@
 <tr>
   <td>Fetch ARP table:</td><td><tmpl_var name="arp_enabled"></td>
 </tr>
+<tmpl_if name="vlan_arpinfo">
+<tr>
+  <td>ARP table to vlan:</td><td><manoc_link vlan id=vlan_arpinfo></td>
+</tr>
+</tmpl_if>
 <tmpl_if name="def_vlan">
 <tr>
-  <td>Default Vlan (port's specific):</td><td><manoc_link vlan id=def_vlan></td>
+  <td>Default Vlan (device specific):</td><td><manoc_link vlan id=def_vlan></td>
 </tr>
 </tmpl_if>
 <tr>

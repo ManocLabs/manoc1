@@ -290,7 +290,7 @@ sub update_arp {
     my $self = shift;
     my ($info, $device) = @_;
 
-    my $vlan = $device->def_vlan() || $self->vlan;
+    my $vlan = $device->vlan_arpinfo() || $self->vlan;
     my $ip_table   = $info->ipNetToMediaTable;
     my $schema = $self->schema;
     my $logger = $self->logger,
