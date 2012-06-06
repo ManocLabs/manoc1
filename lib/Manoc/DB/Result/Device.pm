@@ -137,6 +137,11 @@ __PACKAGE__->add_columns(
 			     default		=> 'NULL',
 			     is_nullable	=> 1,
 			 },
+			 def_vlan => {
+			     data_type		=> 'integer',
+			     default		=> 'NULL',
+			     is_nullable	=> 1,
+			 },
 			 );
 
 __PACKAGE__->set_primary_key('id');
